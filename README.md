@@ -34,3 +34,20 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Gemini Caching (Implicit + Explicit)
+
+The refine backend integrates Gemini context caching.
+
+- Implicit caching: enabled by default on Gemini 2.5. We log `usageMetadata` when available.
+- Explicit caching: per-conversation cache for `gemini-2.5-flash-lite` containing the stable prefix (persona + rules + raw prompt and optional inline images). Subsequent calls reference the cache via `config.cachedContent` and send only a small dynamic suffix.
+
+Environment variables:
+
+- `REFINER_EXPLICIT_CACHE_ENABLED` (default: false)
+- `REFINER_CACHE_MODE` (default: explicit_per_conversation when explicit enabled, otherwise implicit_only)
+- `REFINER_CACHE_DEFAULT_TTL_SECONDS` (default: 900)
+- `REFINER_CACHE_AUTO_DELETE_ON_READY` (default: false)
+- `REFINER_THINKING_BUDGET` (default: 24576)
+
+Client requests may pass `cache.mode`, otherwise server defaults apply.
