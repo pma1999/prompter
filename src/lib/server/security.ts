@@ -35,8 +35,8 @@ export function assertSameOrigin(req: NextRequest): void {
   if (!isSameOrigin(req)) {
     const origin = req.headers.get("origin");
     const host = req.headers.get("host");
-    const err = new Error("FORBIDDEN_ORIGIN");
-    (err as any).details = { origin, host };
+    const err = new Error("FORBIDDEN_ORIGIN") as Error & { details?: { origin?: string | null; host?: string | null } };
+    err.details = { origin, host };
     throw err;
   }
 }

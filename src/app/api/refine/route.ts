@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { refine } from "@/lib/server/refineService";
 import { createGenAI } from "@/lib/server/gemini";
-import { getApiKeyForSession, getApiKeyFromCookies, getSessionExpiry } from "@/lib/server/keyStore";
+import { getApiKeyFromCookies, getSessionExpiry } from "@/lib/server/keyStore";
 import { isEncryptedCookieEnabled, readByokCookies, setSessionCookie } from "@/lib/server/cookies";
 
 export const runtime = "nodejs";

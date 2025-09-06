@@ -5,7 +5,7 @@ import { createGenAI } from "@/lib/server/gemini";
 import { getApiKeyFromCookies, getSessionExpiry } from "@/lib/server/keyStore";
 import { isEncryptedCookieEnabled, readByokCookies, setSessionCookie } from "@/lib/server/cookies";
 
-const COOKIE_NAME = "pp.byok.sid";
+// kept for backward documentation references; not used directly after cookie helper
 import type { RefineRequest } from "@/domain/types";
 
 export const runtime = "nodejs";
