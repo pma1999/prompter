@@ -7,7 +7,7 @@ export interface ModelTokenBudget {
 }
 
 function envInt(name: string): number | undefined {
-  const v = (process.env as any)[name];
+  const v = process.env[name as keyof NodeJS.ProcessEnv];
   if (!v) return undefined;
   const n = Number.parseInt(String(v), 10);
   return Number.isFinite(n) ? n : undefined;

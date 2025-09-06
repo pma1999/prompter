@@ -18,10 +18,10 @@ import { upsertSession, exportSession, importSession } from "@/lib/persistence";
 import { subscribeCommands } from "@/lib/commandBus";
 import { postRefine } from "@/lib/api/refine";
 import { postCountTokens } from "@/lib/api/tokens";
-import type { UsageMetadata, RefineUsageBundle, TokenCountResponse } from "@/domain/types";
+import type { UsageMetadata, RefineUsageBundle, TokenCountResponse, RefineRequest } from "@/domain/types";
 
 export function Workspace() {
-  const [modelId, setModelId] = useState<ModelId>(getDefaultModelId("text"));
+  const [modelId, setModelId] = useState<ModelId>(getDefaultModelId("image"));
   const family = useMemo(() => MODELS.find((m) => m.id === modelId)!.family, [modelId]);
   const presetId = family === "image" ? "image-virtuoso" : "llm-refiner";
   const [raw, setRaw] = useState("");
@@ -39,14 +39,7 @@ export function Workspace() {
   const [usage, setUsage] = useState<RefineUsageBundle | undefined>(undefined);
   const [cumulativeUsage, setCumulativeUsage] = useState<UsageMetadata | undefined>(undefined);
   const [preflight, setPreflight] = useState<TokenCountResponse | undefined>(undefined);
-  const budget = useMemo(() => {
-    try {
-      const { getModelTokenBudget } = require("@/lib/modelLimits");
-      return getModelTokenBudget(modelId);
-    } catch {
-      return {} as any;
-    }
-  }, [modelId]);
+
 
   useEffect(() => {
     return subscribeCommands(async (cmd) => {
@@ -140,7 +133,7 @@ export function Workspace() {
     const handler = setTimeout(async () => {
       try {
         if (!raw.trim()) { setPreflight(undefined); return; }
-        const req = {
+        const req: RefineRequest & { includeCachedPrefix?: boolean } = {
           conversationId: currentSessionId,
           modelId,
           family,
@@ -152,8 +145,8 @@ export function Workspace() {
           context: imageAssets.length ? { image: { assets: imageAssets } } : undefined,
           cache: { mode: "explicit_per_conversation", cachedContentName: cacheName, key: cacheKey },
           includeCachedPrefix: true,
-        } as const;
-        const resp = await postCountTokens(req as any);
+        };
+        const resp = await postCountTokens(req);
         if (!cancelled) setPreflight(resp);
       } catch {
         if (!cancelled) setPreflight(undefined);
@@ -200,13 +193,13 @@ export function Workspace() {
       if (resp.usage?.aggregate) {
         const a = resp.usage.aggregate;
         setCumulativeUsage((prev) => {
-          const out: UsageMetadata = { ...prev } as any;
-          if (typeof a.promptTokenCount === "number") out.promptTokenCount = (out.promptTokenCount ?? 0) + a.promptTokenCount;
-          if (typeof a.candidatesTokenCount === "number") out.candidatesTokenCount = (out.candidatesTokenCount ?? 0) + a.candidatesTokenCount;
-          if (typeof a.totalTokenCount === "number") out.totalTokenCount = (out.totalTokenCount ?? 0) + a.totalTokenCount;
-          if (typeof a.cachedContentTokenCount === "number") out.cachedContentTokenCount = (out.cachedContentTokenCount ?? 0) + a.cachedContentTokenCount;
-          if (typeof a.thoughtsTokenCount === "number") out.thoughtsTokenCount = (out.thoughtsTokenCount ?? 0) + a.thoughtsTokenCount;
-          return out;
+          const base: UsageMetadata = prev ? { ...prev } : {};
+          if (typeof a.promptTokenCount === "number") base.promptTokenCount = (base.promptTokenCount ?? 0) + a.promptTokenCount;
+          if (typeof a.candidatesTokenCount === "number") base.candidatesTokenCount = (base.candidatesTokenCount ?? 0) + a.candidatesTokenCount;
+          if (typeof a.totalTokenCount === "number") base.totalTokenCount = (base.totalTokenCount ?? 0) + a.totalTokenCount;
+          if (typeof a.cachedContentTokenCount === "number") base.cachedContentTokenCount = (base.cachedContentTokenCount ?? 0) + a.cachedContentTokenCount;
+          if (typeof a.thoughtsTokenCount === "number") base.thoughtsTokenCount = (base.thoughtsTokenCount ?? 0) + a.thoughtsTokenCount;
+          return base;
         });
       }
 

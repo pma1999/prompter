@@ -330,7 +330,7 @@ export async function refine(req: RefineRequest): Promise<RefineResponse> {
       cacheCreated = ensured.created;
       cacheExpireTime = ensured.expireTime;
     } catch (err: unknown) {
-      try { console.warn("[refine][cache] ensure_error", { key, error: (err as any)?.message }); } catch {}
+      try { console.warn("[refine][cache] ensure_error", { key, error: (err as Error)?.message }); } catch {}
       cachedContentName = undefined;
     }
   }
@@ -358,11 +358,15 @@ export async function refine(req: RefineRequest): Promise<RefineResponse> {
             responseSchema: refineResponseSchema,
             temperature: 0.6,
           }
-    ) as any,
+    ),
   });
   try { console.debug("[refine][service] primary.raw", response.text); } catch {}
   const primaryUsage = extractUsageMetadata(response);
   try { console.debug("[refine][service] primary.usage", primaryUsage); } catch {}
+
+  let usagePreviewVar: UsageMetadata | undefined;
+  let usageFinalVar: UsageMetadata | undefined;
+  let usagePreviewFallbackVar: UsageMetadata | undefined;
 
   const jsonUnknown = coerceResponseJson(response.text || "");
   const json = jsonUnknown as {
@@ -435,7 +439,7 @@ export async function refine(req: RefineRequest): Promise<RefineResponse> {
               responseSchema: previewOnlySchema,
               temperature: 0.4,
             }
-      ) as any,
+      ),
     });
     try { console.debug("[refine][service] preview.raw", previewResp.text); } catch {}
     const previewUsage = extractUsageMetadata(previewResp);
@@ -443,7 +447,7 @@ export async function refine(req: RefineRequest): Promise<RefineResponse> {
     const previewJson = coerceResponseJson(previewResp.text || "") as { previewPrompt?: string };
     try { console.debug("[refine][service] preview.parsed", previewJson); } catch {}
     if (previewJson.previewPrompt) previewPrompt = previewJson.previewPrompt;
-    var usagePreviewVar: UsageMetadata | undefined = previewUsage;
+    usagePreviewVar = previewUsage;
   }
 
   if ((status === "ready" || !hasQuestions) && !perfectedPrompt) {
@@ -490,7 +494,7 @@ export async function refine(req: RefineRequest): Promise<RefineResponse> {
               responseSchema: finalOnlySchema,
               temperature: 0.6,
             }
-      ) as any,
+      ),
     });
     try { console.debug("[refine][service] final.raw", finalResp.text); } catch {}
     const finalUsage = extractUsageMetadata(finalResp);
@@ -500,7 +504,7 @@ export async function refine(req: RefineRequest): Promise<RefineResponse> {
     if (finalJson.perfectedPrompt) {
       perfectedPrompt = finalJson.perfectedPrompt;
     }
-    var usageFinalVar: UsageMetadata | undefined = finalUsage;
+    usageFinalVar = finalUsage;
   }
 
   if (!hasQuestions && !perfectedPrompt) {
@@ -548,7 +552,7 @@ export async function refine(req: RefineRequest): Promise<RefineResponse> {
                 responseSchema: previewOnlySchema,
                 temperature: 0.3,
               }
-        ) as any,
+        ),
       });
       try { console.debug("[refine][service] previewFallback.raw", previewResp.text); } catch {}
       const previewFallbackUsage = extractUsageMetadata(previewResp);
@@ -556,7 +560,7 @@ export async function refine(req: RefineRequest): Promise<RefineResponse> {
       const pj = coerceResponseJson(previewResp.text || "") as { previewPrompt?: string };
       try { console.debug("[refine][service] previewFallback.parsed", pj); } catch {}
       if (pj.previewPrompt) previewPrompt = pj.previewPrompt;
-      var usagePreviewFallbackVar: UsageMetadata | undefined = previewFallbackUsage;
+      usagePreviewFallbackVar = previewFallbackUsage;
     }
     perfectedPrompt = perfectedPrompt || previewPrompt || "";
   }
@@ -590,7 +594,7 @@ export async function refine(req: RefineRequest): Promise<RefineResponse> {
       key,
       expireTime: cacheExpireTime,
       created: cacheCreated,
-    } : (primaryUsage ? { mode: "implicit_only", usage: { totalTokenCount: primaryUsage.totalTokenCount, cachedTokens: undefined } as any } : undefined),
+    } : (primaryUsage ? { mode: "implicit_only", usage: { totalTokenCount: primaryUsage.totalTokenCount, cachedTokens: undefined } } : undefined),
   };
   try { console.debug("[refine][service] outgoing", result); } catch {}
 

@@ -69,7 +69,7 @@ export function buildCacheKey(params: {
   return `refine:${simpleHash(body)}`;
 }
 
-export function buildCachedContents(prefixText: string, assets?: AssetRef[]): unknown {
+export function buildCachedContents(prefixText: string, assets?: AssetRef[]): string | Array<{ inlineData: { mimeType: string; data: string } } | { text: string }> {
   const imageParts = (assets || [])
     .filter((a) => a.mimeType && a.dataUri)
     .map((a) => {
@@ -91,7 +91,7 @@ export async function ensureCache(params: {
   ai: GoogleGenAI;
   modelName: string;
   systemInstruction: string;
-  cachedPrefixContents: unknown;
+  cachedPrefixContents: ReturnType<typeof buildCachedContents>;
   requestedName?: string;
   ttlSeconds?: number;
 }): Promise<{ name: string; expireTime?: string; created: boolean }> {
@@ -104,13 +104,13 @@ export async function ensureCache(params: {
   const created = await ai.caches.create({
     model: modelName,
     config: {
-      contents: cachedPrefixContents as any,
+      contents: cachedPrefixContents,
       systemInstruction,
       ...(ttl ? { ttl } : {}),
     },
   });
-  const createdName = (created as any)?.name as string;
-  const createdExpire = (created as any)?.expireTime as string | undefined;
+  const createdName = created?.name as string;
+  const createdExpire = created?.expireTime as string | undefined;
   try { console.debug("[refine][cache] create", { name: createdName, expireTime: createdExpire }); } catch {}
   return { name: createdName, expireTime: createdExpire, created: true };
 }
@@ -120,9 +120,9 @@ export async function updateCacheTtl(ai: GoogleGenAI, name: string, ttlSeconds?:
   if (!ttl) return;
   try {
     const updated = await ai.caches.update({ name, config: { ttl } });
-    try { console.debug("[refine][cache] update_ttl", { name, expireTime: (updated as any)?.expireTime }); } catch {}
+    try { console.debug("[refine][cache] update_ttl", { name, expireTime: (updated as { expireTime?: string })?.expireTime }); } catch {}
   } catch (err: unknown) {
-    try { console.warn("[refine][cache] update_ttl_error", { name, error: (err as any)?.message }); } catch {}
+    try { console.warn("[refine][cache] update_ttl_error", { name, error: (err as Error)?.message }); } catch {}
   }
 }
 
@@ -131,11 +131,11 @@ export async function deleteCache(ai: GoogleGenAI, name: string): Promise<void> 
     await ai.caches.delete({ name });
     try { console.debug("[refine][cache] delete", { name }); } catch {}
   } catch (err: unknown) {
-    try { console.warn("[refine][cache] delete_error", { name, error: (err as any)?.message }); } catch {}
+    try { console.warn("[refine][cache] delete_error", { name, error: (err as Error)?.message }); } catch {}
   }
 }
 
-function toModalityList(val: any): ModalityTokenCount[] | undefined {
+function toModalityList(val: unknown): ModalityTokenCount[] | undefined {
   if (!Array.isArray(val)) return undefined;
   return val
     .map((item) => {
@@ -147,16 +147,19 @@ function toModalityList(val: any): ModalityTokenCount[] | undefined {
     .filter(Boolean) as ModalityTokenCount[];
 }
 
-export function extractUsageMetadata(resp: any): UsageMetadata | undefined {
-  const meta = (resp as any)?.usageMetadata || (resp as any)?.usage_metadata;
+export function extractUsageMetadata(resp: unknown): UsageMetadata | undefined {
+  // Try both camelCase and snake_case as the SDK may return either.
+  const meta = (resp as { usageMetadata?: unknown; usage_metadata?: unknown })?.usageMetadata
+    || (resp as { usageMetadata?: unknown; usage_metadata?: unknown })?.usage_metadata;
   if (!meta) return undefined;
-  const promptTokenCount = meta.promptTokenCount ?? meta.prompt_token_count;
-  const candidatesTokenCount = meta.candidatesTokenCount ?? meta.candidates_token_count;
-  const totalTokenCount = meta.totalTokenCount ?? meta.total_token_count;
-  const cachedContentTokenCount = meta.cachedContentTokenCount ?? meta.cached_content_token_count ?? meta.cachedTokens ?? meta.cached_tokens;
-  const thoughtsTokenCount = meta.thoughtsTokenCount ?? meta.thoughts_token_count;
-  const promptTokensDetails = toModalityList(meta.promptTokensDetails ?? meta.prompt_tokens_details);
-  const cacheTokensDetails = toModalityList(meta.cacheTokensDetails ?? meta.cache_tokens_details);
+  const m = meta as Record<string, unknown>;
+  const promptTokenCount = m.promptTokenCount ?? m.prompt_token_count;
+  const candidatesTokenCount = m.candidatesTokenCount ?? m.candidates_token_count;
+  const totalTokenCount = m.totalTokenCount ?? m.total_token_count;
+  const cachedContentTokenCount = m.cachedContentTokenCount ?? m.cached_content_token_count ?? m.cachedTokens ?? m.cached_tokens;
+  const thoughtsTokenCount = m.thoughtsTokenCount ?? m.thoughts_token_count;
+  const promptTokensDetails = toModalityList(m.promptTokensDetails ?? m.prompt_tokens_details);
+  const cacheTokensDetails = toModalityList(m.cacheTokensDetails ?? m.cache_tokens_details);
   const out: UsageMetadata = {};
   if (typeof promptTokenCount === "number") out.promptTokenCount = promptTokenCount;
   if (typeof candidatesTokenCount === "number") out.candidatesTokenCount = candidatesTokenCount;

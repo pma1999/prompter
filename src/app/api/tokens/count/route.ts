@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { countTokensForRefineNextTurn } from "@/lib/server/tokenService";
+import type { RefineRequest } from "@/domain/types";
 
 const AssetRefSchema = z.object({
   id: z.string().optional(),
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: { code: "BAD_REQUEST", message: parsed.error.message } }, { status: 400 });
     }
-    const result = await countTokensForRefineNextTurn(parsed.data as any);
+    const result = await countTokensForRefineNextTurn(parsed.data as RefineRequest & { includeCachedPrefix?: boolean });
     return NextResponse.json(result);
   } catch (err: unknown) {
     const e = err as { message?: string };

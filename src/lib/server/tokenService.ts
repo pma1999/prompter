@@ -20,9 +20,9 @@ export async function countTokensForRefineNextTurn(req: RefineRequest & { includ
     // Count only the dynamic suffix for the next call.
     const suffix = buildPrimarySuffix(req);
     const contents = buildUserContents(suffix, undefined);
-    const resp = await ai.models.countTokens({ model: modelName, contents: contents as any });
+    const resp = await ai.models.countTokens({ model: modelName, contents });
     return {
-      totalTokens: (resp as any).totalTokens ?? (resp as any)?.total_tokens ?? 0,
+      totalTokens: resp.totalTokens ?? 0,
       // cached prefix already accounted by the server during generateContent via cachedContent
     };
   }
@@ -35,21 +35,21 @@ export async function countTokensForRefineNextTurn(req: RefineRequest & { includ
     const suffixContents = buildUserContents(suffixText, undefined);
 
     const [prefixResp, suffixResp] = await Promise.all([
-      ai.models.countTokens({ model: modelName, contents: prefixContents as any }),
-      ai.models.countTokens({ model: modelName, contents: suffixContents as any }),
+      ai.models.countTokens({ model: modelName, contents: prefixContents }),
+      ai.models.countTokens({ model: modelName, contents: suffixContents }),
     ]);
     return {
-      totalTokens: (suffixResp as any).totalTokens ?? 0,
-      cachedContentTokenCount: (prefixResp as any).totalTokens ?? 0,
+      totalTokens: suffixResp.totalTokens ?? 0,
+      cachedContentTokenCount: prefixResp.totalTokens ?? 0,
     };
   }
 
   // Implicit mode: count the full directive (text + optional images) that would be sent.
   const directive = buildDirective(req, imagesPresent);
   const contents = buildUserContents(directive, req.context?.image?.assets);
-  const resp = await ai.models.countTokens({ model: modelName, contents: contents as any });
+  const resp = await ai.models.countTokens({ model: modelName, contents });
   return {
-    totalTokens: (resp as any).totalTokens ?? (resp as any)?.total_tokens ?? 0,
+    totalTokens: resp.totalTokens ?? 0,
   };
 }
 

@@ -32,12 +32,12 @@ export function SessionsSidebar({ onSelect }: { onSelect: (session: SessionData)
         name: "Untitled Session",
         createdAt: now,
         updatedAt: now,
-        modelId: "gemini-2.5-pro",
-        family: "text",
+        modelId: "gemini-2.5-flash-image",
+        family: "image",
         revision: 0,
       },
       rawPrompt: "",
-      instructionPresetId: "llm-refiner",
+      instructionPresetId: "image-virtuoso",
     };
     upsertSession(session);
     setSessions(loadSessions());
