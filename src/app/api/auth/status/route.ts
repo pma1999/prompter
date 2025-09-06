@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionExpiry, getApiKeyForSession, cleanupExpiredSessions } from "@/lib/server/keyStore";
+import { getSessionExpiry, getApiKeyForSession, cleanupExpiredSessions, decryptApiKeyFromCookie } from "@/lib/server/keyStore";
 
 const COOKIE_NAME = "pp.byok.sid";
 
@@ -11,8 +11,9 @@ export async function GET(req: NextRequest) {
   try {
     cleanupExpiredSessions();
     const cookie = req.cookies.get(COOKIE_NAME)?.value;
+    const enc = req.cookies.get(`${COOKIE_NAME}.enc`)?.value;
     try { console.debug("[byok][auth:status] cookie", { hasCookie: !!cookie, cookieLen: cookie?.length }); } catch {}
-    const apiKey = getApiKeyForSession(cookie);
+    const apiKey = getApiKeyForSession(cookie) || decryptApiKeyFromCookie(enc);
     if (!apiKey) {
       try { console.debug("[byok][auth:status] not_connected"); } catch {}
       return NextResponse.json({ connected: false });

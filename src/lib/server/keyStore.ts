@@ -85,3 +85,43 @@ export function cleanupExpiredSessions(): void {
 export function getStoreSize(): number {
   return sessionIdToSession.size;
 }
+
+// --- Encrypted cookie helpers (stateless BYOK for serverless) ---
+
+function getAesKey(): Buffer {
+  const secret = process.env.BYOK_SECRET || process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || "pp-dev-secret";
+  return crypto.createHash("sha256").update(secret).digest(); // 32 bytes
+}
+
+export function encryptApiKeyForCookie(apiKey: string): string {
+  const iv = crypto.randomBytes(12);
+  const key = getAesKey();
+  const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
+  const enc = Buffer.concat([cipher.update(apiKey, "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return `v1.${iv.toString("base64url")}.${enc.toString("base64url")}.${tag.toString("base64url")}`;
+}
+
+export function decryptApiKeyFromCookie(payload?: string): string | undefined {
+  try {
+    if (!payload || !payload.startsWith("v1.")) return undefined;
+    const [, ivb64, encb64, tagb64] = payload.split(".");
+    if (!ivb64 || !encb64 || !tagb64) return undefined;
+    const iv = Buffer.from(ivb64, "base64url");
+    const enc = Buffer.from(encb64, "base64url");
+    const tag = Buffer.from(tagb64, "base64url");
+    const key = getAesKey();
+    const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
+    decipher.setAuthTag(tag);
+    const dec = Buffer.concat([decipher.update(enc), decipher.final()]).toString("utf8");
+    return dec;
+  } catch {
+    return undefined;
+  }
+}
+
+export function getApiKeyFromCookies(sessionId?: string, encrypted?: string, opts?: { touch?: boolean }): string | undefined {
+  const fromStore = getApiKeyForSession(sessionId, opts);
+  if (fromStore) return fromStore;
+  return decryptApiKeyFromCookie(encrypted);
+}

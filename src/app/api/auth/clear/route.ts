@@ -20,6 +20,13 @@ export async function POST(req: NextRequest) {
       path: "/api",
       maxAge: 0,
     });
+    res.cookies.set(`${COOKIE_NAME}.enc`, "", {
+      httpOnly: true,
+      secure,
+      sameSite: "strict",
+      path: "/api",
+      maxAge: 0,
+    });
     try { console.debug("[byok][auth:clear] cleared", { hadCookie: !!cookie }); } catch {}
     return res;
   } catch (err: unknown) {

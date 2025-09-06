@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { createOrUpdateKeySession } from "@/lib/server/keyStore";
+import { createOrUpdateKeySession, encryptApiKeyForCookie } from "@/lib/server/keyStore";
 
 const COOKIE_NAME = "pp.byok.sid";
 
@@ -28,6 +28,14 @@ export async function POST(req: NextRequest) {
     const res = NextResponse.json({ connected: true, expiresAt });
     const secure = process.env.NODE_ENV === "production";
     res.cookies.set(COOKIE_NAME, sessionId, {
+      httpOnly: true,
+      secure,
+      sameSite: "strict",
+      path: "/api",
+      maxAge: Math.floor(ttlMs / 1000),
+    });
+    // Set a stateless encrypted fallback so that serverless cold starts or multi-region still work
+    res.cookies.set(`${COOKIE_NAME}.enc`, encryptApiKeyForCookie(parsed.data.apiKey), {
       httpOnly: true,
       secure,
       sameSite: "strict",

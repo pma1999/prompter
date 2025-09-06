@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { refine } from "@/lib/server/refineService";
 import { createGenAI } from "@/lib/server/gemini";
-import { getApiKeyForSession } from "@/lib/server/keyStore";
+import { getApiKeyForSession, getApiKeyFromCookies } from "@/lib/server/keyStore";
 
 const COOKIE_NAME = "pp.byok.sid";
 
@@ -91,8 +91,9 @@ export async function POST(req: NextRequest) {
 
     const data = parsed.data;
     const sessionId = req.cookies.get(COOKIE_NAME)?.value;
+    const enc = req.cookies.get(`${COOKIE_NAME}.enc`)?.value;
     try { console.debug("[byok][refine] cookie", { hasCookie: !!sessionId, cookieLen: sessionId?.length }); } catch {}
-    const apiKey = getApiKeyForSession(sessionId, { touch: true });
+    const apiKey = getApiKeyFromCookies(sessionId, enc, { touch: true });
     if (!apiKey) {
       try { console.warn("[byok][refine] missing_api_key"); } catch {}
       return NextResponse.json(

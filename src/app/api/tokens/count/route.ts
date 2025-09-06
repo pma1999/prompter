@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { countTokensForRefineNextTurn } from "@/lib/server/tokenService";
 import { createGenAI } from "@/lib/server/gemini";
-import { getApiKeyForSession } from "@/lib/server/keyStore";
+import { getApiKeyFromCookies } from "@/lib/server/keyStore";
 
 const COOKIE_NAME = "pp.byok.sid";
 import type { RefineRequest } from "@/domain/types";
@@ -69,8 +69,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: { code: "BAD_REQUEST", message: parsed.error.message } }, { status: 400 });
     }
     const sessionId = req.cookies.get(COOKIE_NAME)?.value;
+    const enc = req.cookies.get(`${COOKIE_NAME}.enc`)?.value;
     try { console.debug("[byok][tokens] cookie", { hasCookie: !!sessionId, cookieLen: sessionId?.length }); } catch {}
-    const apiKey = getApiKeyForSession(sessionId, { touch: true });
+    const apiKey = getApiKeyFromCookies(sessionId, enc, { touch: true });
     if (!apiKey) {
       try { console.warn("[byok][tokens] missing_api_key"); } catch {}
       return NextResponse.json({ error: { code: "MISSING_API_KEY", message: "Please connect your Gemini API key." } }, { status: 401 });
