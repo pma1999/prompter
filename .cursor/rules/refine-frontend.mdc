@@ -1,0 +1,43 @@
+---
+globs: frontend/src/components/workspace/**/*.tsx,frontend/src/lib/api/**/*.ts
+description: Frontend refine flow – state, context reset, and client logging
+---
+# Frontend – Flujo de refinamiento y gestión de contexto
+
+## Estado y componentes relevantes
+- `Workspace.tsx` orquesta el flujo: modelo, raw, preview, perfected, questions, answers, conversationId.
+- `ClarificationPanel.tsx` renderiza preguntas con opción "Recommended".
+- `PreviewAndFinal.tsx` muestra preview y definitivo.
+
+## Cliente API
+- `postRefine(req)` en [frontend/src/lib/api/refine.ts](mdc:frontend/src/lib/api/refine.ts):
+  - POST `/api/refine` con `RefineRequest`.
+  - Logging `console.debug` de request (ids, cache hints, previousPreview, previousQuestions y answers) y response (ok, status, body).
+ - `postCountTokens(req)` en [frontend/src/lib/api/tokens.ts](mdc:frontend/src/lib/api/tokens.ts):
+   - POST `/api/tokens/count` con la misma forma de `RefineRequest` + `includeCachedPrefix?`.
+   - Devuelve `TokenCountResponse` con `totalTokens` y, si corresponde, `cachedContentTokenCount`.
+
+## Contexto enviado al backend por turno
+- `RefineRequest` incluye:
+  - `rawPrompt`, `modelId`, `family`, `instructionPresetId`.
+  - `answers` (pares questionId/optionId) – solo las seleccionadas.
+  - `previousPreviewPrompt` y `previousQuestions` para grounding conversacional.
+  - `cache?` (persistido por conversación): `{ mode: "explicit_per_conversation", cachedContentName?, key? }`. El cliente envía `cachedContentName` y `key` devueltos por el servidor para reutilizar la caché.
+
+## Reset de conversación
+- Al recibir `status=ready` con `perfectedPrompt`:
+  - Se limpian `preview`, `questions`, `answers` y `conversationId` para que la próxima pulsación sea una nueva solicitud basada solo en el raw actual.
+- El botón Reset también vacía `conversationId` y limpia el resto del contexto.
+  - También se limpian `cacheName`/`cacheKey` locales.
+
+## Atajos UX
+- Ctrl/⌘+Enter ejecuta refine desde `RawPromptInput`.
+- Toasts informan de estados: error, "preview listo", "perfected prompt ready".
+
+## UI – Tokens (preflight + post-respuesta)
+- Preflight: `Workspace.tsx` hace debounce (≈400ms) y llama a `/api/tokens/count`; muestra “Next call: input X • cached prefix Y” en `ActionBar`.
+- Post-respuesta: `PreviewAndFinal.tsx` muestra métricas reales cuando `RefineResponse.usage` está disponible:
+  - Siempre renderiza línea de métricas: `Cached C • Input P • Output O • Thoughts T • Total TT`.
+  - Fallback: si faltan totales, solo `Total` cae a estimado.
+- Final: la tarjeta usa el `usage.aggregate` y, además, `Workspace` mantiene un `cumulativeUsage` que suma los agregados por cada refinamiento para mostrar acumulado de sesión.
+

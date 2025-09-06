@@ -1,0 +1,32 @@
+---
+globs: frontend/src/lib/server/*.ts,frontend/src/app/api/refine/*.ts
+description: Backend multimodal refine flow with reference images; how images are included, conditional directive line, and limits
+---
+## Backend – Reference images in refine flow
+
+This project supports attaching 1–4 reference images to the image prompt refinement flow. Images are sent to the refiner for grounding and also to the final gemini-2.5-flash-image generation step.
+
+### Key files
+- [refineService.ts](mdc:frontend/src/lib/server/refineService.ts)
+- [route.ts](mdc:frontend/src/app/api/refine/route.ts)
+
+### How images are passed to Gemini
+- `buildUserContents(text, assets)` in [refineService.ts](mdc:frontend/src/lib/server/refineService.ts) constructs multimodal `contents`:
+  - Each `AssetRef` with `dataUri` becomes an `inlineData` image part.
+  - Images are placed first, followed by a `{ text }` part with el texto.
+- En modo explícito, las imágenes se incluyen en el PREFIJO cacheado via `buildCachedPrefix(...)` + `buildCachedContents(...)`. Los sufijos dinámicos NO reenvían imágenes.
+- En modo implícito, se envían en cada llamada como antes.
+
+### Conditional directive note
+- A directive bullet about reference images is appended only when images are present:
+  - Applied in `buildDirective`, `buildPreviewDirective`, `buildFinalDirective` via a `hasImages` flag.
+- No other prompt rules change.
+
+### Limits & behavior
+- Max 4 images per refine request (validated in API layer).
+- Keep total request size under ~20MB (SDK limit for inline data).
+- Accepted types are enforced on the client (PNG, JPEG, WEBP, HEIC/HEIF).
+
+### Recommended answers highlighting
+- The server normalizes `questions` by marking the recommended option using `recommendedAnswers` if the model omitted the `recommended` flag. See `annotateRecommendedOptions` in [refineService.ts](mdc:frontend/src/lib/server/refineService.ts).
+

@@ -1,0 +1,24 @@
+---
+globs: *.ts,*.tsx
+---
+# TypeScript/React Code Style
+
+- Prefer explicit function signatures on exported symbols; avoid `any`.
+- Use descriptive names; avoid 1–2 letter identifiers.
+- Keep components small, focused, and controlled where applicable. Do not switch controlled/uncontrolled.
+- Favor composition: build from shadcn primitives, avoid deeply nested prop drilling.
+- Guard clauses first, minimal try/catch; handle errors meaningfully (toast, inline message, retry).
+- Formatting: match existing style; prefer multi-line clarity over clever one-liners.
+- Comments: explain “why”, not “how”; avoid TODO—implement or create an issue.
+
+## UI Patterns
+
+- Use shadcn `variant` and `size` props for consistent styling.
+- Keep UX copy terse and actionable; avoid verbose helper text.
+- Accessibility: provide visible focus, ARIA labels for interactive elements, keyboard shortcuts when relevant.
+
+## State
+
+- Derive state when possible (e.g., preset from model family) instead of duplicating.
+- Centralize cross-component events with the command bus rather than prop-drilling.
+

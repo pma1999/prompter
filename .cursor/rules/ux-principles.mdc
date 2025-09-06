@@ -1,0 +1,13 @@
+---
+alwaysApply: true
+---
+# UX Principles for Prompt Perfection
+
+- Reduce cognitive load: default to a clean canvas with compact tips hidden behind a single click.
+- Make the safe path obvious: always provide a one-click action (e.g., “Use Recommended and Preview”).
+- Separate modes visually: Text uses indigo accents; Image uses warm gradient accents.
+- Keep guidance accessible but unobtrusive: use tiny text and collapsible banners for tips; avoid large info blocks.
+- Provide immediate feedback: toasts for copy/export/save; skeletons if loading; clear disabled states.
+- Minimize context switching: preview/final stay visible on the right; actions inline where needed.
+- Keyboard-first: Ctrl/⌘+K (commands), Ctrl/⌘+Enter (refine).
+

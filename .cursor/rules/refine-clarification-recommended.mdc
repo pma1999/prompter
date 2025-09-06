@@ -1,0 +1,14 @@
+---
+globs: frontend/src/lib/server/refineService.ts,frontend/src/components/workspace/ClarificationPanel.tsx
+description: Ensure recommended options render highlighted even when the model only returns recommendedAnswers
+---
+## Clarification – Recommended highlighting
+
+### Problem
+Some model responses include `recommendedAnswers` but do not set `option.recommended` on the corresponding question options, causing the UI Badge to be absent.
+
+### Solution
+- Server augments `questions` using `recommendedAnswers` via `annotateRecommendedOptions` in [refineService.ts](mdc:frontend/src/lib/server/refineService.ts):
+  - If no option is marked `recommended` and there is a `recommendedAnswers` entry for that question, the matching option is marked with `recommended: true`.
+- The UI ([ClarificationPanel.tsx](mdc:frontend/src/components/workspace/ClarificationPanel.tsx)) already displays a `Badge` when `option.recommended` is true.
+

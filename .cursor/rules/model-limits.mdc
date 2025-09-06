@@ -1,0 +1,22 @@
+---
+description: Model token budgets via environment variables
+globs: frontend/src/lib/modelLimits.ts,frontend/src/components/workspace/**/*.tsx
+---
+# Model Token Budgets
+
+## Overview
+Token budgets per model are read from environment variables to enable non-invasive UI warnings and planning. If unset, the UI does not enforce limits and only displays counts.
+
+## File
+- [modelLimits.ts](mdc:frontend/src/lib/modelLimits.ts)
+  - `getModelTokenBudget(modelId)`: returns `{ maxInputTokens?, maxOutputTokens?, maxTotalTokens? }` from env.
+  - Expected env names (public):
+    - `NEXT_PUBLIC_GEMINI_2_5_PRO_MAX_INPUT_TOKENS`
+    - `NEXT_PUBLIC_GEMINI_2_5_PRO_MAX_OUTPUT_TOKENS`
+    - `NEXT_PUBLIC_GEMINI_2_5_PRO_MAX_TOTAL_TOKENS`
+    - `NEXT_PUBLIC_GEMINI_2_5_FLASH_MAX_INPUT_TOKENS`, etc.
+    - `NEXT_PUBLIC_GEMINI_2_5_FLASH_IMAGE_MAX_*`
+
+## UI
+- The budget can be read in `Workspace.tsx` and used to surface soft warnings when `preflight.totalTokens` approaches limits. Current UI prints a compact “Next call: …” line and is ready to add threshold warnings.
+

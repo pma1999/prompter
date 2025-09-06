@@ -1,0 +1,12 @@
+---
+description: How we use shadcn in this project
+globs: frontend/src/components/**/*.tsx
+---
+# shadcn Usage Guidelines
+
+- Import components from `@/components/ui/*`. Do not re-implement primitives.
+- Prefer `variant` + `size` over custom classes; keep additional classes minimal.
+- Keep inputs controlled; ensure `RadioGroup`, `Tabs`, etc., do not change controlled state mid-lifecycle.
+- Use `Separator`, `Badge`, `Card`, `Tabs`, `Accordion` for layout patterns; avoid heavy bespoke CSS.
+- Icons from `lucide-react`; keep sizes consistent (`size-4`, `size-5`).
+

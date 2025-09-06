@@ -1,0 +1,68 @@
+---
+globs: frontend/src/lib/server/**/*.ts,frontend/src/app/api/refine/**/*
+description: Backend refine flow with Gemini 2.5 Flash Lite
+---
+# Backend – Refinamiento de prompts para imagen (Gemini 2.5 Flash Lite)
+
+## Modelos y librería
+- SDK: `@google/genai` (cliente creado en [frontend/src/lib/server/gemini.ts](mdc:frontend/src/lib/server/gemini.ts)).
+- Modelo refiner: `gemini-2.5-flash-lite` (texto), usado para refinar prompts de imagen.
+- Instrucciones del sistema: se toma la persona `image-virtuoso` desde [frontend/src/lib/instructionPresets.ts](mdc:frontend/src/lib/instructionPresets.ts) y se pasa como `systemInstruction` solo cuando NO se usa `cachedContent`.
+- Variables de entorno:
+  - `GEMINI_API_KEY` (requerida por el SDK en servidor).
+  - `REFINER_THINKING_BUDGET` (opcional; por defecto `24576`).
+
+## Esquemas de salida (JSON forzado)
+Definidos en [frontend/src/lib/server/refineSchema.ts](mdc:frontend/src/lib/server/refineSchema.ts):
+- `refineResponseSchema`: respuesta principal (status, previewPrompt, perfectedPrompt, questions, recommendedAnswers…).
+- `previewOnlySchema`: solo `{ previewPrompt }`.
+- `finalOnlySchema`: solo `{ perfectedPrompt }`.
+Todas las llamadas usan `responseMimeType: application/json` y `responseSchema` correspondiente.
+
+## Orquestación de prompts (directrices)
+Implementado en [frontend/src/lib/server/refineService.ts](mdc:frontend/src/lib/server/refineService.ts):
+
+- `buildDirective(req)` – Llamada principal. Incluye:
+  - Reglas del sistema para el refinador.
+  - `Raw Prompt` (texto del usuario).
+  - `User Answers` (si las hay): pares `questionId → optionId`.
+  - `Previous Preview Prompt` (si existe) para grounding.
+  - `Clarification Q&A Transcript`: historial de preguntas previas y opción elegida.
+
+- `buildPreviewDirective(raw, assumed, family, previousPreview, previousQuestions)` – Síntesis de preview:
+  - Asume respuestas (`assumed`: merge de recomendadas y usuario; usuario tiene prioridad).
+  - Pide un único párrafo en inglés como preview.
+  - Incluye `Raw Prompt`, preview previo (si lo hay) y Q&A para grounding.
+
+- `buildFinalDirective(raw, allAnswers, family, previousPreview, previousQuestions)` – Síntesis del definitivo:
+  - Considera intención y respuestas completas.
+  - Pide un único párrafo en inglés como `perfectedPrompt`.
+  - Incluye `Raw Prompt`, preview previo (si lo hay) y Q&A para grounding.
+
+- Modo con caché explícita (per-conversation):
+  - `buildCachedPrefix(req, hasImages)`: prefijo estable con reglas + persona implícita en `systemInstruction` de la caché y `Raw Prompt`. Si hay imágenes, se incluyen como `inlineData` en el prefijo cacheado.
+  - `buildPrimarySuffix(req)`, `buildPreviewSuffix(...)`, `buildFinalSuffix(...)`: sufijos mínimos por llamada.
+  - Las llamadas a `generateContent` envían `config.cachedContent` y NUNCA `systemInstruction`.
+
+## Lógica de estado y garantías
+- Si `status = needs_clarification` con preguntas y falta `previewPrompt`, se sintetiza con `previewOnlySchema`.
+- Si el modelo devuelve `needs_clarification` sin preguntas, se finaliza: se sintetiza `perfectedPrompt` y se retorna `ready`.
+- Si no hay preguntas (o `status = ready`) y falta `perfectedPrompt`, se sintetiza con `finalOnlySchema`.
+- Fallback final: si no hay preguntas y aún no hay `perfectedPrompt`, se promueve el `previewPrompt` como definitivo y se retorna `ready`.
+- El merge de respuestas se hace así: `recommendedAnswers` del modelo + `answers` del usuario, donde el usuario sobreescribe la recomendada.
+
+## Ruta API
+- Endpoint POST `/api/refine` en [frontend/src/app/api/refine/route.ts](mdc:frontend/src/app/api/refine/route.ts):
+  - Valida con Zod.
+  - Llama a `refine()` y devuelve `RefineResponse`.
+  - Registra (console.debug/error) payload, validación y salida.
+
+## Logging (prefijos)
+- ## Métricas de uso de tokens
+- `refineService` captura `usageMetadata` tras cada `generateContent` y lo normaliza con `extractUsageMetadata` (en [cacheService.ts](mdc:frontend/src/lib/server/cacheService.ts)).
+- El servidor devuelve un `usage` bundle en `RefineResponse` con desgloses por llamada (`primary`, `preview`, `final`, `previewFallback`) y un `aggregate` que suma campos numéricos.
+- Campos soportados: `promptTokenCount`, `candidatesTokenCount`, `totalTokenCount`, `cachedContentTokenCount`, `thoughtsTokenCount`, `promptTokensDetails`, `cacheTokensDetails`.
+- `[refine][route] incoming|outgoing|validation_error|error`
+- `[refine][service] directive|cachedPrefix|primarySuffix|previewSuffix|finalSuffix|primary.raw|primary.parsed|preview.raw|preview.parsed|final.raw|final.parsed|mergedAnswers|outgoing|*.usage`
+- `[refine][cache] create|update_ttl|delete|key_mismatch_discard|ensure_error`
+

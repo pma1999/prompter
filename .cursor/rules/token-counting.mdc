@@ -1,0 +1,36 @@
+---
+description: Definitive token counting with Gemini – server, API, and frontend behavior
+globs: frontend/src/lib/server/**/*.ts,frontend/src/app/api/tokens/**,frontend/src/components/workspace/**/*.tsx,frontend/src/lib/api/tokens.ts
+---
+# Token Counting – Definitive Implementation
+
+## Overview
+We use Gemini's tokenizer for exact counts. Preflight counts use `models.countTokens`; post-response usage comes from `usageMetadata`. The UI shows real counts (with cached vs non-cached separation) and falls back gracefully when a field is missing.
+
+## Server
+- Service: [tokenService.ts](mdc:frontend/src/lib/server/tokenService.ts)
+  - `countTokensForRefineNextTurn(req)`: builds the same `contents` as the next `generateContent` call and runs `ai.models.countTokens(...)`.
+  - Modes:
+    - Explicit cache with name: counts only the dynamic suffix.
+    - Explicit cache without name: counts cached prefix and dynamic suffix separately.
+    - Implicit: counts full directive (images first + text).
+- Usage extraction: [cacheService.ts](mdc:frontend/src/lib/server/cacheService.ts)
+  - `extractUsageMetadata(resp)`: normalizes `usageMetadata` (camel/snake) into `UsageMetadata`.
+  - Fields: `promptTokenCount`, `candidatesTokenCount`, `totalTokenCount`, `cachedContentTokenCount`, `thoughtsTokenCount`, `promptTokensDetails`, `cacheTokensDetails`.
+- Refine aggregation: [refineService.ts](mdc:frontend/src/lib/server/refineService.ts)
+  - Captures usage per call (`primary`, `preview`, `final`, `previewFallback`) and returns `usage.aggregate` (sum of numeric fields).
+
+## API
+- Preflight endpoint: [route.ts](mdc:frontend/src/app/api/tokens/count/route.ts)
+  - Request: mirrors `RefineRequest` + `includeCachedPrefix?`.
+  - Response: `TokenCountResponse` with `totalTokens`, optional `cachedContentTokenCount`, and optional per-modality details.
+
+## Frontend
+- Client API: [tokens.ts](mdc:frontend/src/lib/api/tokens.ts)
+- Workspace behavior: [Workspace.tsx](mdc:frontend/src/components/workspace/Workspace.tsx)
+  - Debounced preflight (≈400ms) shows “Next call: input X • cached prefix Y” in `ActionBar`.
+  - Maintains `cumulativeUsage` (sum of `usage.aggregate` across refinements) to show session totals in the final card.
+- Display: [PreviewAndFinal.tsx](mdc:frontend/src/components/workspace/PreviewAndFinal.tsx)
+  - Always shows metrics line: `Cached C • Input P • Output O • Thoughts T • Total TT` using real usage when present.
+  - Fallback for `Total` uses the local text estimator only if necessary.
+
