@@ -19,12 +19,63 @@ const ACCEPTED_MIME = new Set([
   "image/heif",
 ]);
 
+function estimateBase64Bytes(dataUri: string): number {
+  const base64 = dataUri.split(",")[1] || "";
+  // Base64 decoding: 4 chars -> 3 bytes
+  return Math.floor((base64.length * 3) / 4);
+}
+
 async function fileToDataUri(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error("Failed to read file"));
     reader.onload = () => resolve(String(reader.result));
     reader.readAsDataURL(file);
+  });
+}
+
+async function compressImageToJpegDataUri(file: File, maxDim = 1600, quality = 0.82): Promise<string> {
+  // Decode using createImageBitmap when possible; fallback to Image
+  try {
+    const bmp = await createImageBitmap(file).catch(() => undefined);
+    if (bmp) {
+      const scale = Math.min(1, maxDim / Math.max(bmp.width, bmp.height));
+      const w = Math.max(1, Math.round(bmp.width * scale));
+      const h = Math.max(1, Math.round(bmp.height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas unsupported");
+      ctx.drawImage(bmp, 0, 0, w, h);
+      const out = canvas.toDataURL("image/jpeg", quality);
+      try { bmp.close(); } catch {}
+      return out;
+    }
+  } catch {}
+
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("Canvas unsupported");
+        ctx.drawImage(img, 0, 0, w, h);
+        const out = canvas.toDataURL("image/jpeg", quality);
+        URL.revokeObjectURL(url);
+        resolve(out);
+      } catch (e) {
+        URL.revokeObjectURL(url);
+        reject(e);
+      }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Failed to decode image")); };
+    img.src = url;
   });
 }
 
@@ -49,12 +100,23 @@ export function ImageReferenceUploader({ assets, onChangeAssets }: ImageReferenc
     const newAssets: AssetRef[] = [];
     for (const file of selected) {
       try {
-        const dataUri = await fileToDataUri(file);
+        let dataUri: string | undefined;
+        if (file.type === "image/heic" || file.type === "image/heif") {
+          // Keep as-is (can't reliably transcode client-side in all browsers)
+          if (file.size > 6 * 1024 * 1024) {
+            toast.error("HEIC/HEIF image too large; please convert to JPEG/PNG or choose a smaller file.");
+            continue;
+          }
+          dataUri = await fileToDataUri(file);
+        } else {
+          dataUri = await compressImageToJpegDataUri(file);
+        }
+        const estBytes = estimateBase64Bytes(dataUri);
         newAssets.push({
           id: crypto.randomUUID(),
           name: file.name,
-          mimeType: file.type,
-          sizeBytes: file.size,
+          mimeType: file.type === "image/heic" || file.type === "image/heif" ? file.type : "image/jpeg",
+          sizeBytes: estBytes,
           source: "uploaded",
           dataUri,
         });
@@ -65,8 +127,25 @@ export function ImageReferenceUploader({ assets, onChangeAssets }: ImageReferenc
 
     const combined = [...assets, ...newAssets];
     const totalBytes = combined.reduce((s, a) => s + (a.sizeBytes || 0), 0);
-    if (totalBytes > 18 * 1024 * 1024) {
-      toast.warning("Total images exceed ~18MB. Consider fewer/smaller images.");
+    // Keep total inline payload under ~4MB to avoid API body limits
+    const MAX_INLINE_BYTES = 4 * 1024 * 1024;
+    if (totalBytes > MAX_INLINE_BYTES) {
+      // Trim oldest until under cap
+      const trimmed: AssetRef[] = [];
+      let acc = 0;
+      for (const a of combined) {
+        const sz = a.sizeBytes || 0;
+        if (acc + sz > MAX_INLINE_BYTES) break;
+        trimmed.push(a);
+        acc += sz;
+      }
+      if (trimmed.length === 0) {
+        toast.error("Images too large after compression. Please use smaller images.");
+        return;
+      }
+      toast.message("Images trimmed to fit upload limit (~4MB).");
+      onChangeAssets(trimmed);
+      return;
     }
     onChangeAssets(combined);
   }
