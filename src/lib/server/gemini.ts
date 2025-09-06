@@ -1,10 +1,10 @@
 import { GoogleGenAI } from "@google/genai";
 
-let _ai: GoogleGenAI | null = null;
-
-export function getGenAI(): GoogleGenAI {
-  if (_ai) return _ai;
-  // Uses GEMINI_API_KEY from environment automatically if not provided
-  _ai = new GoogleGenAI({});
-  return _ai;
+// Factory that creates a GoogleGenAI client using the provided API key.
+// BYOK: never rely on environment; require apiKey per request/session.
+export function createGenAI(apiKey: string): GoogleGenAI {
+  if (!apiKey || typeof apiKey !== "string" || apiKey.length < 20) {
+    throw new Error("MISSING_API_KEY");
+  }
+  return new GoogleGenAI({ apiKey });
 }

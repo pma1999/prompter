@@ -7,8 +7,19 @@ import { Menubar, MenubarContent, MenubarItem, MenubarMenu, MenubarShortcut, Men
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { CommandMenu } from "@/components/common/CommandMenu";
+import { ApiKeyManager } from "@/components/common/ApiKeyManager";
+import { subscribeCommands } from "@/lib/commandBus";
+import { useEffect, useRef } from "react";
 
 export function AppShell({ left, center, right }: { left: ReactNode; center: ReactNode; right: ReactNode }) {
+  const apiKeyButtonRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    return subscribeCommands((cmd) => {
+      if (cmd === "connect-api-key") {
+        apiKeyButtonRef.current?.click();
+      }
+    });
+  }, []);
   return (
     <SidebarProvider>
       <div className="flex min-h-dvh w-full">
@@ -49,6 +60,11 @@ export function AppShell({ left, center, right }: { left: ReactNode; center: Rea
               <div className="ml-auto flex items-center gap-2">
                 <CommandMenu />
                 <ThemeToggle />
+                <div>
+                  {/* Wrap to expose a ref-triggerable button for opening */}
+                  <span className="hidden" />
+                  <ApiKeyManager />
+                </div>
                 <Button variant="outline" size="sm" asChild>
                   <a href="https://ai.google.dev/gemini-api" target="_blank" rel="noreferrer">Open AI Studio</a>
                 </Button>

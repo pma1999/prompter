@@ -1,6 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
 import { RefineRequest, TokenCountResponse } from "@/domain/types";
-import { getGenAI } from "@/lib/server/gemini";
 import { buildCachedContents } from "@/lib/server/cacheService";
 import { buildDirective, buildPrimarySuffix, buildCachedPrefix, buildUserContents } from "@/lib/server/refineService";
 
@@ -8,8 +7,7 @@ function hasImages(req: RefineRequest): boolean {
   return (req.context?.image?.assets?.length || 0) > 0;
 }
 
-export async function countTokensForRefineNextTurn(req: RefineRequest & { includeCachedPrefix?: boolean }): Promise<TokenCountResponse> {
-  const ai: GoogleGenAI = getGenAI();
+export async function countTokensForRefineNextTurn(ai: GoogleGenAI, req: RefineRequest & { includeCachedPrefix?: boolean }): Promise<TokenCountResponse> {
   const modelName = req.family === "image" ? "gemini-2.5-flash-lite" : "gemini-2.5-flash";
   const imagesPresent = hasImages(req);
 

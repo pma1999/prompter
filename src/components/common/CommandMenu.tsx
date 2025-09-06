@@ -60,6 +60,12 @@ export function CommandMenu() {
               Keyboard Shortcuts
             </CommandItem>
           </CommandGroup>
+          <CommandSeparator />
+          <CommandGroup heading="Settings">
+            <CommandItem onSelect={() => run("connect-api-key")}>
+              Connect API Key
+            </CommandItem>
+          </CommandGroup>
         </CommandList>
       </CommandDialog>
     </>

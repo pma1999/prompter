@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { refine } from "@/lib/server/refineService";
+import { createGenAI } from "@/lib/server/gemini";
+import { getApiKeyForSession } from "@/lib/server/keyStore";
+
+const COOKIE_NAME = "pp.byok.sid";
 
 const CacheSchema = z
   .object({
@@ -67,7 +71,10 @@ export async function POST(req: NextRequest) {
   let payload: unknown;
   try {
     payload = await req.json();
-    console.debug("[refine][route] incoming", payload);
+    console.debug("[refine][route] incoming", {
+      // Log non-sensitive metadata only
+      hasBody: !!payload,
+    });
     const parsed = RefineRequestSchema.safeParse(payload);
     if (!parsed.success) {
       console.warn("[refine][route] validation_error", parsed.error.issues);
@@ -78,12 +85,27 @@ export async function POST(req: NextRequest) {
     }
 
     const data = parsed.data;
-    const result = await refine(data as unknown as import("@/domain/types").RefineRequest);
-    console.debug("[refine][route] outgoing", result);
+    const sessionId = req.cookies.get(COOKIE_NAME)?.value;
+    try { console.debug("[byok][refine] cookie", { hasCookie: !!sessionId, cookieLen: sessionId?.length }); } catch {}
+    const apiKey = getApiKeyForSession(sessionId, { touch: true });
+    if (!apiKey) {
+      try { console.warn("[byok][refine] missing_api_key"); } catch {}
+      return NextResponse.json(
+        { error: { code: "MISSING_API_KEY", message: "Please connect your Gemini API key." } },
+        { status: 401 }
+      );
+    }
+    const ai = createGenAI(apiKey);
+    const result = await refine(ai, data as unknown as import("@/domain/types").RefineRequest);
+    console.debug("[refine][route] outgoing", {
+      ok: true,
+      status: result.status,
+      conversationId: result.conversationId,
+    });
     return NextResponse.json(result);
   } catch (err: unknown) {
     const e = err as { message?: string };
-    console.error("[refine][route] error", { payload, error: e?.message });
+    console.error("[refine][route] error", { error: e?.message });
     const code = e.message === "IMAGE_ONLY_FOR_NOW" ? 400 : 502;
     const message = e.message || "Internal error";
     return NextResponse.json(

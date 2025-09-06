@@ -1,5 +1,5 @@
 import { RefineRequest, RefineResponse, AssetRef, UsageMetadata, RefineUsageBundle } from "@/domain/types";
-import { getGenAI } from "@/lib/server/gemini";
+// ai client is injected by caller (BYOK)
 import { refineResponseSchema, previewOnlySchema, finalOnlySchema } from "@/lib/server/refineSchema";
 import { INSTRUCTION_PRESETS } from "@/lib/instructionPresets";
 import { GoogleGenAI } from "@google/genai";
@@ -67,7 +67,7 @@ export function buildDirective(req: RefineRequest, hasImages?: boolean): string 
   const priorQA = serializeQA(req.previousQuestions, req.answers);
 
   const directive = [base, raw, answersBlock, priorPreview, priorQA].join("\n");
-  try { console.debug("[refine][service] directive", directive); } catch {}
+  if (process.env.NODE_ENV !== "production") { try { console.debug("[refine][service] directive", directive); } catch {} }
   return directive;
 }
 
@@ -93,7 +93,7 @@ export function buildCachedPrefix(req: RefineRequest, hasImages?: boolean): stri
 
   const raw = `\nRaw Prompt:\n"""\n${req.rawPrompt}\n"""`;
   const prefix = [base, raw].join("\n");
-  try { console.debug("[refine][service] cachedPrefix", prefix); } catch {}
+  if (process.env.NODE_ENV !== "production") { try { console.debug("[refine][service] cachedPrefix", prefix); } catch {} }
   return prefix;
 }
 
@@ -104,7 +104,7 @@ export function buildPrimarySuffix(req: RefineRequest): string {
   const priorPreview = req.previousPreviewPrompt ? `\nPrevious Preview Prompt (for grounding only):\n"""\n${req.previousPreviewPrompt}\n"""` : "";
   const priorQA = serializeQA(req.previousQuestions, req.answers);
   const suffix = [answersBlock, priorPreview, priorQA].join("\n");
-  try { console.debug("[refine][service] primarySuffix", suffix); } catch {}
+  if (process.env.NODE_ENV !== "production") { try { console.debug("[refine][service] primarySuffix", suffix); } catch {} }
   return suffix;
 }
 
@@ -128,7 +128,7 @@ function buildPreviewDirective(rawPrompt: string, assumed: Array<{ questionId: s
   const priorQA = serializeQA(previousQuestions, assumed);
 
   const directive = [base, raw, assumedBlock, priorPreview, priorQA].join("\n");
-  try { console.debug("[refine][service] previewDirective", directive); } catch {}
+  if (process.env.NODE_ENV !== "production") { try { console.debug("[refine][service] previewDirective", directive); } catch {} }
   return directive;
 }
 
@@ -149,7 +149,7 @@ function buildPreviewSuffix(rawPrompt: string, assumed: Array<{ questionId: stri
   const priorPreviewBlock = previousPreview ? `\nPrevious Preview (context):\n"""\n${previousPreview}\n"""` : "";
   const priorQA = serializeQA(previousQuestions, assumed);
   const suffix = [base, assumedBlock, priorPreviewBlock, priorQA].join("\n");
-  try { console.debug("[refine][service] previewSuffix", suffix); } catch {}
+  if (process.env.NODE_ENV !== "production") { try { console.debug("[refine][service] previewSuffix", suffix); } catch {} }
   return suffix;
 }
 
@@ -173,7 +173,7 @@ function buildFinalDirective(rawPrompt: string, allAnswers: Array<{ questionId: 
   const priorQA = serializeQA(previousQuestions, allAnswers);
 
   const directive = [base, raw, answersBlock, priorPreview, priorQA].join("\n");
-  try { console.debug("[refine][service] finalDirective", directive); } catch {}
+  if (process.env.NODE_ENV !== "production") { try { console.debug("[refine][service] finalDirective", directive); } catch {} }
   return directive;
 }
 
@@ -194,7 +194,7 @@ function buildFinalSuffix(rawPrompt: string, allAnswers: Array<{ questionId: str
   const priorPreviewBlock = previousPreview ? `\nPrevious Preview (context):\n"""\n${previousPreview}\n"""` : "";
   const priorQA = serializeQA(previousQuestions, allAnswers);
   const suffix = [base, answersBlock, priorPreviewBlock, priorQA].join("\n");
-  try { console.debug("[refine][service] finalSuffix", suffix); } catch {}
+  if (process.env.NODE_ENV !== "production") { try { console.debug("[refine][service] finalSuffix", suffix); } catch {} }
   return suffix;
 }
 
@@ -276,12 +276,10 @@ function aggregateUsage(usages: Array<UsageMetadata | undefined>): UsageMetadata
   return any ? acc : undefined;
 }
 
-export async function refine(req: RefineRequest): Promise<RefineResponse> {
+export async function refine(ai: GoogleGenAI, req: RefineRequest): Promise<RefineResponse> {
   if (req.family !== "image") {
     throw new Error("IMAGE_ONLY_FOR_NOW");
   }
-
-  const ai: GoogleGenAI = getGenAI();
   const persona = getPersonaForFamily(req.family);
   const hasImages = (req.context?.image?.assets?.length || 0) > 0;
 

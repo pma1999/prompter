@@ -19,6 +19,7 @@ import { subscribeCommands } from "@/lib/commandBus";
 import { postRefine } from "@/lib/api/refine";
 import { postCountTokens } from "@/lib/api/tokens";
 import type { UsageMetadata, RefineUsageBundle, TokenCountResponse, RefineRequest } from "@/domain/types";
+import { getAuthStatus } from "@/lib/api/auth";
 
 export function Workspace() {
   const [modelId, setModelId] = useState<ModelId>(getDefaultModelId("image"));
@@ -39,6 +40,18 @@ export function Workspace() {
   const [usage, setUsage] = useState<RefineUsageBundle | undefined>(undefined);
   const [cumulativeUsage, setCumulativeUsage] = useState<UsageMetadata | undefined>(undefined);
   const [preflight, setPreflight] = useState<TokenCountResponse | undefined>(undefined);
+  const [hasApiKey, setHasApiKey] = useState<boolean>(false);
+  useEffect(() => {
+    (async () => {
+      try {
+        const s = await getAuthStatus();
+        setHasApiKey(s.connected);
+      } catch {
+        setHasApiKey(false);
+      }
+    })();
+  }, []);
+
 
 
   useEffect(() => {
@@ -111,6 +124,17 @@ export function Workspace() {
       if (cmd === "open-shortcuts") {
         toast.info("Shortcuts: Ctrl/⌘+K Command Palette, Ctrl/⌘+Enter Refine");
       }
+      if (cmd === "api-key-connected") {
+        setHasApiKey(true);
+        // Avoid reusing caches from a different key
+        setCacheName(undefined);
+        setCacheKey(undefined);
+      }
+      if (cmd === "api-key-disconnected") {
+        setHasApiKey(false);
+        setCacheName(undefined);
+        setCacheKey(undefined);
+      }
     });
   }, [modelId, family, presetId, raw, preview, finalPrompt, questions, answers, currentSessionId, currentSessionName]);
 
@@ -133,6 +157,7 @@ export function Workspace() {
     const handler = setTimeout(async () => {
       try {
         if (!raw.trim()) { setPreflight(undefined); return; }
+        if (!hasApiKey) { setPreflight(undefined); return; }
         const req: RefineRequest & { includeCachedPrefix?: boolean } = {
           conversationId: currentSessionId,
           modelId,
@@ -153,7 +178,7 @@ export function Workspace() {
       }
     }, 400);
     return () => { cancelled = true; clearTimeout(handler); };
-  }, [raw, modelId, family, presetId, answers, preview, questions, imageAssets, cacheName, cacheKey, currentSessionId]);
+  }, [raw, modelId, family, presetId, answers, preview, questions, imageAssets, cacheName, cacheKey, currentSessionId, hasApiKey]);
 
   function handleInsertTemplate(text: string) {
     setRaw((r) => (r ? r + "\n\n" + text : text));
@@ -162,6 +187,10 @@ export function Workspace() {
   async function onRefine() {
     if (!raw.trim()) {
       toast.error("Please enter your raw prompt.");
+      return;
+    }
+    if (!hasApiKey) {
+      toast.error("Connect your Gemini API key to continue.");
       return;
     }
     if (family !== "image") {
@@ -313,6 +342,9 @@ export function Workspace() {
           <ImageReferenceUploader assets={imageAssets} onChangeAssets={setImageAssets} />
         )}
         <RawPromptInput value={raw} onChange={setRaw} onSubmit={onRefine} placeholder={family === "image" ? "Describe your vision… (Purpose, subject, lighting, camera, mood)" : "Describe your goal… (Audience, constraints, desired format)"} />
+        {!hasApiKey && (
+          <div className="text-sm text-amber-600 dark:text-amber-500">Connect your Gemini API key using the button in the top right to enable refinement.</div>
+        )}
         {questions && <ClarificationPanel questions={questions} answers={answers} onAnswer={onAnswer} />}
         <ActionBar onRefine={onRefine} onReset={onReset} onSave={onSave} onExport={onExport} busy={busy} preflight={preflight} />
       </div>

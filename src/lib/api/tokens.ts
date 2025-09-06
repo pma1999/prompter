@@ -15,6 +15,7 @@ export async function postCountTokens(req: RefineRequest & { includeCachedPrefix
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(req),
+    cache: "no-store",
   });
   const json = await res.json();
   try {

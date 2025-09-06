@@ -1,4 +1,12 @@
-export type AppCommand = "new-session" | "import-session" | "export-session" | "open-docs" | "open-shortcuts";
+export type AppCommand =
+  | "new-session"
+  | "import-session"
+  | "export-session"
+  | "open-docs"
+  | "open-shortcuts"
+  | "connect-api-key"
+  | "api-key-connected"
+  | "api-key-disconnected";
 
 const EVENT_NAME = "pp:command";
 

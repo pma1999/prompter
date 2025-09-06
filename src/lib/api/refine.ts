@@ -17,6 +17,8 @@ export async function postRefine(req: RefineRequest): Promise<RefineResponse> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(req),
+    // Cookies (session id) are sent by default on same-origin; ensure no-cache to reflect auth status changes immediately
+    cache: "no-store",
   });
   const json = await res.json();
 

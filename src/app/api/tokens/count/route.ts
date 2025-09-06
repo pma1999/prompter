@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { countTokensForRefineNextTurn } from "@/lib/server/tokenService";
+import { createGenAI } from "@/lib/server/gemini";
+import { getApiKeyForSession } from "@/lib/server/keyStore";
+
+const COOKIE_NAME = "pp.byok.sid";
 import type { RefineRequest } from "@/domain/types";
 
 const AssetRefSchema = z.object({
@@ -60,7 +64,15 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: { code: "BAD_REQUEST", message: parsed.error.message } }, { status: 400 });
     }
-    const result = await countTokensForRefineNextTurn(parsed.data as RefineRequest & { includeCachedPrefix?: boolean });
+    const sessionId = req.cookies.get(COOKIE_NAME)?.value;
+    try { console.debug("[byok][tokens] cookie", { hasCookie: !!sessionId, cookieLen: sessionId?.length }); } catch {}
+    const apiKey = getApiKeyForSession(sessionId, { touch: true });
+    if (!apiKey) {
+      try { console.warn("[byok][tokens] missing_api_key"); } catch {}
+      return NextResponse.json({ error: { code: "MISSING_API_KEY", message: "Please connect your Gemini API key." } }, { status: 401 });
+    }
+    const ai = createGenAI(apiKey);
+    const result = await countTokensForRefineNextTurn(ai, parsed.data as RefineRequest & { includeCachedPrefix?: boolean });
     return NextResponse.json(result);
   } catch (err: unknown) {
     const e = err as { message?: string };
