@@ -77,8 +77,8 @@ export function SessionsSidebar({ onSelect }: { onSelect: (session: SessionData)
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="p-3 flex items-center gap-2">
-        <Input placeholder="Search sessions…" value={filter} onChange={(e) => setFilter(e.target.value)} />
+      <div className="p-3 flex items-center gap-2 flex-wrap">
+        <Input className="min-w-0 flex-1" placeholder="Search sessions…" value={filter} onChange={(e) => setFilter(e.target.value)} />
         <Button size="sm" onClick={createNew}>New</Button>
       </div>
       <Separator />
@@ -94,7 +94,7 @@ export function SessionsSidebar({ onSelect }: { onSelect: (session: SessionData)
                 />
                 <div className="text-xs text-muted-foreground">{MODELS.find((m) => m.id === s.meta.modelId)?.label}</div>
               </div>
-              <div className="mt-2 flex items-center gap-2">
+              <div className="mt-2 flex items-center gap-2 flex-wrap">
                 <Button size="sm" variant="secondary" onClick={() => onSelect(s)}>Open</Button>
                 <Button size="sm" variant="ghost" onClick={() => handleExport(s)}>Export</Button>
                 <Button size="sm" variant="destructive" onClick={() => handleDelete(s.meta.id)}>Delete</Button>

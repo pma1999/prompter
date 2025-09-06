@@ -1,14 +1,15 @@
 "use client"
 
 import { ReactNode } from "react";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { Sidebar, SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Menubar, MenubarContent, MenubarItem, MenubarMenu, MenubarShortcut, MenubarTrigger } from "@/components/ui/menubar";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { CommandMenu } from "@/components/common/CommandMenu";
 import { ApiKeyManager } from "@/components/common/ApiKeyManager";
-import { subscribeCommands } from "@/lib/commandBus";
+import { subscribeCommands, emitCommand } from "@/lib/commandBus";
 import { useEffect, useRef } from "react";
 
 export function AppShell({ left, center, right }: { left: ReactNode; center: ReactNode; right: ReactNode }) {
@@ -23,15 +24,16 @@ export function AppShell({ left, center, right }: { left: ReactNode; center: Rea
   return (
     <SidebarProvider>
       <div className="flex min-h-dvh w-full">
-        {/* Left Sidebar */}
-        <aside className="hidden md:flex w-[280px] flex-col border-r bg-background/50 backdrop-blur supports-[backdrop-filter]:bg-background/40">
+        {/* Left Sidebar (responsive with mobile sheet) */}
+        <Sidebar>
           {left}
-        </aside>
+        </Sidebar>
         {/* Main Content */}
         <SidebarInset className="flex-1">
           {/* Header */}
           <header className="sticky top-0 z-30 bg-background/80 backdrop-blur border-b">
-            <div className="flex h-14 items-center px-4 gap-3">
+            {/* Desktop header */}
+            <div className="hidden md:flex h-14 items-center px-4 gap-3">
               <div className="font-semibold tracking-tight">Prompt Perfection</div>
               <Separator orientation="vertical" className="mx-1 h-6" />
               <Menubar className="h-8">
@@ -61,7 +63,6 @@ export function AppShell({ left, center, right }: { left: ReactNode; center: Rea
                 <CommandMenu />
                 <ThemeToggle />
                 <div>
-                  {/* Wrap to expose a ref-triggerable button for opening */}
                   <span className="hidden" />
                   <ApiKeyManager />
                 </div>
@@ -70,8 +71,42 @@ export function AppShell({ left, center, right }: { left: ReactNode; center: Rea
                 </Button>
               </div>
             </div>
+            {/* Mobile header */}
+            <div className="md:hidden flex flex-col w-full gap-2 px-3 py-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <SidebarTrigger aria-label="Toggle sessions" />
+                  <div className="font-semibold tracking-tight truncate">Prompt Perfection</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ThemeToggle />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">More</Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>File</DropdownMenuLabel>
+                      <DropdownMenuItem onSelect={() => emitCommand("new-session")}>New Session</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => emitCommand("import-session")}>Import JSON</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => emitCommand("export-session")}>Export JSON</DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel>Help</DropdownMenuLabel>
+                      <DropdownMenuItem onSelect={() => emitCommand("open-docs")}>Docs</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => emitCommand("open-shortcuts")}>Keyboard Shortcuts</DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel>Settings</DropdownMenuLabel>
+                      <DropdownMenuItem onSelect={() => emitCommand("connect-api-key")}>Connect API Key</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <CommandMenu />
+                <ApiKeyManager />
+              </div>
+            </div>
           </header>
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-4 p-4">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-4 p-3 sm:p-4">
             <main className="min-h-[calc(100dvh-56px)]">{center}</main>
             <aside className="min-h-[calc(100dvh-56px)] border-l pl-4 hidden lg:block">{right}</aside>
           </div>

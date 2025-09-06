@@ -347,6 +347,11 @@ export function Workspace() {
         )}
         {questions && <ClarificationPanel questions={questions} answers={answers} onAnswer={onAnswer} />}
         <ActionBar onRefine={onRefine} onReset={onReset} onSave={onSave} onExport={onExport} busy={busy} preflight={preflight} />
+        {/* Mobile outputs inline (desktop uses right column) */}
+        <div className="lg:hidden space-y-4">
+          <PreviewPromptCard value={preview} usage={usage?.preview || usage?.primary} onCopy={onCopyPreview} onInsert={() => setRaw(preview || "")} />
+          <PerfectedPromptCard value={finalPrompt} usage={cumulativeUsage || usage?.aggregate || usage?.final || usage?.primary} />
+        </div>
       </div>
     )} right={(
       <div>

@@ -16,7 +16,7 @@ export function PreviewPromptCard({ value, usage, onCopy, onInsert }: { value?: 
         <CardTitle className="text-sm">Preview Prompt (Based on recommended choices)</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <pre className="text-sm whitespace-pre-wrap bg-muted p-3 rounded-md max-h-[320px] overflow-auto">{value}</pre>
+        <pre className="text-sm whitespace-pre-wrap bg-muted p-3 rounded-md max-h-[50vh] md:max-h-[320px] overflow-auto">{value}</pre>
         <div className="text-xs text-muted-foreground">
           {typeof usage?.cachedContentTokenCount === "number" && (
             <span>Cached {usage.cachedContentTokenCount} • </span>
@@ -41,7 +41,7 @@ export function PerfectedPromptCard({ value, usage }: { value?: string; usage?: 
         <CardTitle className="text-sm">The Perfected Prompt</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <pre className="text-sm whitespace-pre-wrap bg-muted p-3 rounded-md max-h-[420px] overflow-auto">{value}</pre>
+        <pre className="text-sm whitespace-pre-wrap bg-muted p-3 rounded-md max-h-[60vh] md:max-h-[420px] overflow-auto">{value}</pre>
         <div className="text-xs text-muted-foreground">
           {typeof usage?.cachedContentTokenCount === "number" && (
             <span>Cached {usage.cachedContentTokenCount} • </span>
