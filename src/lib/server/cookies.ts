@@ -67,11 +67,16 @@ export function clearByokCookies(res: NextResponse): void {
 }
 
 export function isEncryptedCookieEnabled(): boolean {
-  const val = process.env.BYOK_ENCRYPTED_COOKIE_ENABLED;
-  if (typeof val === "string") {
-    return val.toLowerCase() === "true";
+  const explicit = process.env.BYOK_ENCRYPTED_COOKIE_ENABLED;
+  if (typeof explicit === "string") {
+    return explicit.toLowerCase() === "true";
   }
-  // Default: enabled in dev, disabled in production
+  // Auto-enable in production when a current secret is configured, to ensure
+  // stateless BYOK works reliably across serverless instances.
+  if (process.env.NODE_ENV === "production" && process.env.BYOK_SECRET_CURRENT) {
+    return true;
+  }
+  // Default: enabled in dev, disabled in production without a secret
   return process.env.NODE_ENV !== "production";
 }
 
