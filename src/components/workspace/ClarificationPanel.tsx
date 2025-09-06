@@ -24,8 +24,9 @@ export function ClarificationPanel({
       {questions.map((q) => {
         const current: string = answers[q.id] ?? "";
         const knownIds = new Set(q.options.map((o) => o.id));
-        const isKnown = current && knownIds.has(current);
-        const isCustomSelected = !isKnown && (current !== "" || current === CUSTOM_OPTION_ID);
+        const isKnown = current !== "" && knownIds.has(current);
+        const hasCustomText = current !== "" && !knownIds.has(current) && current !== CUSTOM_OPTION_ID;
+        const isCustomSelected = current === CUSTOM_OPTION_ID || hasCustomText;
         const radioValue = isKnown ? current : (isCustomSelected ? CUSTOM_OPTION_ID : "");
         return (
           <Card key={q.id}>
@@ -79,12 +80,20 @@ export function ClarificationPanel({
                       {radioValue === CUSTOM_OPTION_ID && (
                         <div className="mt-2">
                           <Input
-                            value={isKnown || current === CUSTOM_OPTION_ID ? "" : (current || "")}
+                            value={!isKnown && current !== CUSTOM_OPTION_ID ? (current || "") : ""}
                             placeholder="Write your own answer..."
                             maxLength={200}
+                            autoFocus
+                            onKeyDown={(e) => { e.stopPropagation(); }}
+                            onKeyUp={(e) => { e.stopPropagation(); }}
+                            onClick={(e) => { e.stopPropagation(); }}
                             onChange={(e) => {
-                              const next = e.target.value.replace(/^\s+/, "");
-                              onAnswer(q.id, next);
+                              const next = e.target.value;
+                              if (next === "") {
+                                onAnswer(q.id, CUSTOM_OPTION_ID);
+                              } else {
+                                onAnswer(q.id, next);
+                              }
                             }}
                           />
                         </div>
