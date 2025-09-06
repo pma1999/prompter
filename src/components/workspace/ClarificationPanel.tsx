@@ -22,7 +22,7 @@ export function ClarificationPanel({
   return (
     <div className="space-y-3">
       {questions.map((q) => {
-        const current = answers[q.id] ?? "";
+        const current: string = answers[q.id] ?? "";
         const knownIds = new Set(q.options.map((o) => o.id));
         const isKnown = current && knownIds.has(current);
         const isCustomSelected = !isKnown && (current !== "" || current === CUSTOM_OPTION_ID);

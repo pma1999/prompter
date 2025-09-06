@@ -32,7 +32,8 @@ export function readByokCookies(req: NextRequest): { sessionId?: string; enc?: s
 
 export function setSessionCookie(res: NextResponse, sessionId: string, ttlMs: number): void {
   const secure = process.env.NODE_ENV === "production";
-  res.cookies.set(COOKIE_NAME_SESSION_PRIMARY, sessionId, {
+  const name = secure ? COOKIE_NAME_SESSION_PRIMARY : COOKIE_NAME_SESSION_FALLBACK;
+  res.cookies.set(name, sessionId, {
     httpOnly: true,
     secure,
     sameSite: "strict",
@@ -43,7 +44,8 @@ export function setSessionCookie(res: NextResponse, sessionId: string, ttlMs: nu
 
 export function setEncryptedCookie(res: NextResponse, payload: string, ttlMs: number): void {
   const secure = process.env.NODE_ENV === "production";
-  res.cookies.set(COOKIE_NAME_ENC_PRIMARY, payload, {
+  const name = secure ? COOKIE_NAME_ENC_PRIMARY : COOKIE_NAME_ENC_FALLBACK;
+  res.cookies.set(name, payload, {
     httpOnly: true,
     secure,
     sameSite: "strict",
