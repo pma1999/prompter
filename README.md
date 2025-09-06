@@ -7,8 +7,6 @@
 
 Prompt Perfection is an advanced, open-source web application for crafting, refining, and perfecting prompts for Google's Gemini models. It provides a rich, interactive workspace that supports both text and multimodal image generation, helping users translate their creative ideas into high-quality, model-ready prompts.
 
-*(Suggestion: Add a screenshot or GIF of the application in action here.)*
-
 ## Key Features
 
 -   **Interactive Refinement:** Instead of just writing a prompt, engage in a "creative consultation" with an AI assistant that asks clarifying multiple-choice questions to fill in missing details and improve your prompt.
@@ -46,8 +44,8 @@ Follow these instructions to set up and run the project locally for development.
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/your-username/pma1999-prompter.git
-    cd pma1999-prompter
+    git clone https://github.com/pma1999/prompter.git
+    cd prompter
     ```
 
 2.  **Install dependencies:**
