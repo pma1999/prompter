@@ -77,7 +77,7 @@ export function ApiKeyManager({ onStatusChange }: { onStatusChange?: (connected:
             <DialogTitle>Connect your Gemini API key</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="text-sm text-muted-foreground">Get a free key in <a className="underline" href="https://ai.google.dev/gemini-api" target="_blank" rel="noreferrer">Google AI Studio</a>. Your key is stored securely on this server (not in your browser).</div>
+            <div className="text-sm text-muted-foreground">Get a free key in <a className="underline" href="https://ai.google.dev/gemini-api" target="_blank" rel="noreferrer">Google AI Studio</a>. We never store your key in local storage. It’s kept server-side and referenced by an HttpOnly cookie; an optional encrypted HttpOnly fallback may be used for availability. Your key is never exposed to page scripts.</div>
             <div className="space-y-2">
               <Label htmlFor="apiKey">API Key</Label>
               <Input id="apiKey" type="password" placeholder="GEMINI-..." value={apiKey} onChange={(e) => setApiKey(e.target.value)} />

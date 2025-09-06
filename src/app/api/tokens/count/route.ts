@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { countTokensForRefineNextTurn } from "@/lib/server/tokenService";
 import { createGenAI } from "@/lib/server/gemini";
-import { getApiKeyFromCookies } from "@/lib/server/keyStore";
+import { getApiKeyFromCookies, getSessionExpiry } from "@/lib/server/keyStore";
+import { isEncryptedCookieEnabled, readByokCookies, setSessionCookie } from "@/lib/server/cookies";
 
 const COOKIE_NAME = "pp.byok.sid";
 import type { RefineRequest } from "@/domain/types";
@@ -68,17 +69,24 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: { code: "BAD_REQUEST", message: parsed.error.message } }, { status: 400 });
     }
-    const sessionId = req.cookies.get(COOKIE_NAME)?.value;
-    const enc = req.cookies.get(`${COOKIE_NAME}.enc`)?.value;
+    const { sessionId, enc } = readByokCookies(req);
     try { console.debug("[byok][tokens] cookie", { hasCookie: !!sessionId, cookieLen: sessionId?.length }); } catch {}
-    const apiKey = getApiKeyFromCookies(sessionId, enc, { touch: true });
+    const apiKey = getApiKeyFromCookies(sessionId, isEncryptedCookieEnabled() ? enc : undefined, { touch: true });
     if (!apiKey) {
       try { console.warn("[byok][tokens] missing_api_key"); } catch {}
       return NextResponse.json({ error: { code: "MISSING_API_KEY", message: "Please connect your Gemini API key." } }, { status: 401 });
     }
     const ai = createGenAI(apiKey);
     const result = await countTokensForRefineNextTurn(ai, parsed.data as RefineRequest & { includeCachedPrefix?: boolean });
-    return NextResponse.json(result);
+    const res = NextResponse.json(result);
+    // Align cookie TTL with server-side sliding TTL if applicable
+    if (sessionId) {
+      const exp = getSessionExpiry(sessionId);
+      if (exp && exp > Date.now()) {
+        setSessionCookie(res, sessionId, exp - Date.now());
+      }
+    }
+    return res;
   } catch (err: unknown) {
     const e = err as { message?: string };
     return NextResponse.json({ error: { code: "UPSTREAM_ERROR", message: e?.message || "Internal error" } }, { status: 502 });

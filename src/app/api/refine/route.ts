@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { refine } from "@/lib/server/refineService";
 import { createGenAI } from "@/lib/server/gemini";
-import { getApiKeyForSession, getApiKeyFromCookies } from "@/lib/server/keyStore";
-
-const COOKIE_NAME = "pp.byok.sid";
+import { getApiKeyForSession, getApiKeyFromCookies, getSessionExpiry } from "@/lib/server/keyStore";
+import { isEncryptedCookieEnabled, readByokCookies, setSessionCookie } from "@/lib/server/cookies";
 
 export const runtime = "nodejs";
 export const preferredRegion = "home";
@@ -90,10 +89,9 @@ export async function POST(req: NextRequest) {
     }
 
     const data = parsed.data;
-    const sessionId = req.cookies.get(COOKIE_NAME)?.value;
-    const enc = req.cookies.get(`${COOKIE_NAME}.enc`)?.value;
+    const { sessionId, enc } = readByokCookies(req);
     try { console.debug("[byok][refine] cookie", { hasCookie: !!sessionId, cookieLen: sessionId?.length }); } catch {}
-    const apiKey = getApiKeyFromCookies(sessionId, enc, { touch: true });
+    const apiKey = getApiKeyFromCookies(sessionId, isEncryptedCookieEnabled() ? enc : undefined, { touch: true });
     if (!apiKey) {
       try { console.warn("[byok][refine] missing_api_key"); } catch {}
       return NextResponse.json(
@@ -108,7 +106,15 @@ export async function POST(req: NextRequest) {
       status: result.status,
       conversationId: result.conversationId,
     });
-    return NextResponse.json(result);
+    const res = NextResponse.json(result);
+    // Align cookie TTL with server-side sliding TTL if applicable
+    if (sessionId) {
+      const exp = getSessionExpiry(sessionId);
+      if (exp && exp > Date.now()) {
+        setSessionCookie(res, sessionId, exp - Date.now());
+      }
+    }
+    return res;
   } catch (err: unknown) {
     const e = err as { message?: string };
     console.error("[refine][route] error", { error: e?.message });

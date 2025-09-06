@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { deleteSession } from "@/lib/server/keyStore";
-
-const COOKIE_NAME = "pp.byok.sid";
+import { assertSameOrigin, rateLimit } from "@/lib/server/security";
+import { clearByokCookies, readByokCookies } from "@/lib/server/cookies";
 
 export const runtime = "nodejs";
 export const preferredRegion = "home";
@@ -9,25 +9,16 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
-    const cookie = req.cookies.get(COOKIE_NAME)?.value;
-    if (cookie) deleteSession(cookie);
+    assertSameOrigin(req);
+    const rl = rateLimit(req, "auth:clear", { allow: 20, windowMs: 60_000 });
+    if (!rl.ok) {
+      return NextResponse.json({ error: { code: "RATE_LIMITED", message: "Too many requests" } }, { status: 429, headers: { "Retry-After": Math.ceil((rl.resetAt - Date.now()) / 1000).toString() } });
+    }
+    const { sessionId } = readByokCookies(req);
+    if (sessionId) deleteSession(sessionId);
     const res = NextResponse.json({ connected: false });
-    const secure = process.env.NODE_ENV === "production";
-    res.cookies.set(COOKIE_NAME, "", {
-      httpOnly: true,
-      secure,
-      sameSite: "strict",
-      path: "/api",
-      maxAge: 0,
-    });
-    res.cookies.set(`${COOKIE_NAME}.enc`, "", {
-      httpOnly: true,
-      secure,
-      sameSite: "strict",
-      path: "/api",
-      maxAge: 0,
-    });
-    try { console.debug("[byok][auth:clear] cleared", { hadCookie: !!cookie }); } catch {}
+    clearByokCookies(res);
+    try { console.debug("[byok][auth:clear] cleared", { hadCookie: !!sessionId }); } catch {}
     return res;
   } catch (err: unknown) {
     const e = err as { message?: string };

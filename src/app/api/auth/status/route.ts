@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionExpiry, getApiKeyForSession, cleanupExpiredSessions, decryptApiKeyFromCookie } from "@/lib/server/keyStore";
-
-const COOKIE_NAME = "pp.byok.sid";
+import { isEncryptedCookieEnabled, readByokCookies } from "@/lib/server/cookies";
 
 export const runtime = "nodejs";
 export const preferredRegion = "home";
@@ -10,15 +9,14 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   try {
     cleanupExpiredSessions();
-    const cookie = req.cookies.get(COOKIE_NAME)?.value;
-    const enc = req.cookies.get(`${COOKIE_NAME}.enc`)?.value;
-    try { console.debug("[byok][auth:status] cookie", { hasCookie: !!cookie, cookieLen: cookie?.length }); } catch {}
-    const apiKey = getApiKeyForSession(cookie) || decryptApiKeyFromCookie(enc);
+    const { sessionId, enc } = readByokCookies(req);
+    try { console.debug("[byok][auth:status] cookie", { hasCookie: !!sessionId, cookieLen: sessionId?.length }); } catch {}
+    const apiKey = getApiKeyForSession(sessionId) || (isEncryptedCookieEnabled() ? decryptApiKeyFromCookie(enc) : undefined);
     if (!apiKey) {
       try { console.debug("[byok][auth:status] not_connected"); } catch {}
       return NextResponse.json({ connected: false });
     }
-    const expiresAt = getSessionExpiry(cookie);
+    const expiresAt = getSessionExpiry(sessionId);
     try { console.debug("[byok][auth:status] connected", { expiresAt }); } catch {}
     return NextResponse.json({ connected: true, expiresAt });
   } catch (err: unknown) {

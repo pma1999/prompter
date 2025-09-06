@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createOrUpdateKeySession, encryptApiKeyForCookie } from "@/lib/server/keyStore";
-
-const COOKIE_NAME = "pp.byok.sid";
+import { assertSameOrigin, rateLimit } from "@/lib/server/security";
+import { isEncryptedCookieEnabled, setEncryptedCookie, setSessionCookie } from "@/lib/server/cookies";
 
 export const runtime = "nodejs";
 export const preferredRegion = "home";
@@ -15,6 +15,12 @@ const BodySchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    // Defense-in-depth: enforce same-origin on credential-setting endpoint
+    assertSameOrigin(req);
+    const rl = rateLimit(req, "auth:key", { allow: 10, windowMs: 60_000 });
+    if (!rl.ok) {
+      return NextResponse.json({ error: { code: "RATE_LIMITED", message: "Too many requests" } }, { status: 429, headers: { "Retry-After": Math.ceil((rl.resetAt - Date.now()) / 1000).toString() } });
+    }
     const payload = await req.json();
     const parsed = BodySchema.safeParse(payload);
     if (!parsed.success) {
@@ -26,23 +32,12 @@ export async function POST(req: NextRequest) {
     const { sessionId, expiresAt } = createOrUpdateKeySession(parsed.data.apiKey, ttlMs);
 
     const res = NextResponse.json({ connected: true, expiresAt });
-    const secure = process.env.NODE_ENV === "production";
-    res.cookies.set(COOKIE_NAME, sessionId, {
-      httpOnly: true,
-      secure,
-      sameSite: "strict",
-      path: "/api",
-      maxAge: Math.floor(ttlMs / 1000),
-    });
-    // Set a stateless encrypted fallback so that serverless cold starts or multi-region still work
-    res.cookies.set(`${COOKIE_NAME}.enc`, encryptApiKeyForCookie(parsed.data.apiKey), {
-      httpOnly: true,
-      secure,
-      sameSite: "strict",
-      path: "/api",
-      maxAge: Math.floor(ttlMs / 1000),
-    });
-    try { console.debug("[byok][auth:key] set", { sessionId, expiresAt, secure }); } catch {}
+    setSessionCookie(res, sessionId, ttlMs);
+    // Optional stateless encrypted fallback (env-gated)
+    if (isEncryptedCookieEnabled()) {
+      setEncryptedCookie(res, encryptApiKeyForCookie(parsed.data.apiKey), ttlMs);
+    }
+    try { console.debug("[byok][auth:key] set", { sessionId, expiresAt }); } catch {}
     return res;
   } catch (err: unknown) {
     const e = err as { message?: string };

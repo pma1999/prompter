@@ -87,34 +87,87 @@ export function getStoreSize(): number {
 }
 
 // --- Encrypted cookie helpers (stateless BYOK for serverless) ---
+type KeyBundle = { current?: Buffer; previous1?: Buffer; legacy?: Buffer[] };
 
-function getAesKey(): Buffer {
-  const secret = process.env.BYOK_SECRET || process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || "pp-dev-secret";
-  return crypto.createHash("sha256").update(secret).digest(); // 32 bytes
+function sha256(input: string): Buffer {
+  return crypto.createHash("sha256").update(input).digest();
+}
+
+function getKeyBundle(): KeyBundle {
+  const isProd = process.env.NODE_ENV === "production";
+  const currentSecret = process.env.BYOK_SECRET_CURRENT || process.env.BYOK_SECRET;
+  const previous1 = process.env.BYOK_SECRET_PREVIOUS_1;
+
+  if (isProd && !process.env.BYOK_SECRET_CURRENT) {
+    throw new Error("BYOK_SECRET_CURRENT_MISSING");
+  }
+
+  const bundle: KeyBundle = { current: undefined, previous1: undefined, legacy: [] };
+  if (currentSecret) bundle.current = sha256(currentSecret);
+  if (previous1) bundle.previous1 = sha256(previous1);
+
+  // Legacy fallbacks for v1 payloads only (best-effort in dev)
+  const legacyCandidates: string[] = [];
+  if (process.env.BYOK_SECRET) legacyCandidates.push(process.env.BYOK_SECRET);
+  if (process.env.NEXTAUTH_SECRET) legacyCandidates.push(process.env.NEXTAUTH_SECRET);
+  if (process.env.AUTH_SECRET) legacyCandidates.push(process.env.AUTH_SECRET);
+  if (!isProd && legacyCandidates.length === 0) legacyCandidates.push("pp-dev-secret");
+  bundle.legacy = legacyCandidates.map(sha256);
+  return bundle;
 }
 
 export function encryptApiKeyForCookie(apiKey: string): string {
+  // v2 with versioned key id ('c' current). Decryptors should prefer indicated key.
+  const keys = getKeyBundle();
+  if (!keys.current) throw new Error("BYOK_SECRET_CURRENT_MISSING");
   const iv = crypto.randomBytes(12);
-  const key = getAesKey();
-  const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
+  const cipher = crypto.createCipheriv("aes-256-gcm", keys.current, iv);
   const enc = Buffer.concat([cipher.update(apiKey, "utf8"), cipher.final()]);
   const tag = cipher.getAuthTag();
-  return `v1.${iv.toString("base64url")}.${enc.toString("base64url")}.${tag.toString("base64url")}`;
+  return `v2.c.${iv.toString("base64url")}.${enc.toString("base64url")}.${tag.toString("base64url")}`;
 }
 
 export function decryptApiKeyFromCookie(payload?: string): string | undefined {
   try {
-    if (!payload || !payload.startsWith("v1.")) return undefined;
-    const [, ivb64, encb64, tagb64] = payload.split(".");
-    if (!ivb64 || !encb64 || !tagb64) return undefined;
-    const iv = Buffer.from(ivb64, "base64url");
-    const enc = Buffer.from(encb64, "base64url");
-    const tag = Buffer.from(tagb64, "base64url");
-    const key = getAesKey();
-    const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
-    decipher.setAuthTag(tag);
-    const dec = Buffer.concat([decipher.update(enc), decipher.final()]).toString("utf8");
-    return dec;
+    if (!payload) return undefined;
+    const parts = payload.split(".");
+    if (parts[0] === "v2") {
+      // v2.<kid>.<iv>.<enc>.<tag>
+      const [, kid, ivb64, encb64, tagb64] = parts;
+      if (!kid || !ivb64 || !encb64 || !tagb64) return undefined;
+      const iv = Buffer.from(ivb64, "base64url");
+      const enc = Buffer.from(encb64, "base64url");
+      const tag = Buffer.from(tagb64, "base64url");
+      const keys = getKeyBundle();
+      const key = kid === "c" ? keys.current : kid === "p1" ? keys.previous1 : undefined;
+      if (!key) return undefined;
+      const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
+      decipher.setAuthTag(tag);
+      const dec = Buffer.concat([decipher.update(enc), decipher.final()]).toString("utf8");
+      return dec;
+    }
+    if (parts[0] === "v1") {
+      // Try all available keys (current/previous/legacy) for backward compatibility
+      const [, ivb64, encb64, tagb64] = parts;
+      if (!ivb64 || !encb64 || !tagb64) return undefined;
+      const iv = Buffer.from(ivb64, "base64url");
+      const enc = Buffer.from(encb64, "base64url");
+      const tag = Buffer.from(tagb64, "base64url");
+      const keys = getKeyBundle();
+      const candidates: Buffer[] = [keys.current, keys.previous1, ...(keys.legacy || [])].filter(Boolean) as Buffer[];
+      for (const key of candidates) {
+        try {
+          const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
+          decipher.setAuthTag(tag);
+          const dec = Buffer.concat([decipher.update(enc), decipher.final()]).toString("utf8");
+          return dec;
+        } catch {
+          // try next key
+        }
+      }
+      return undefined;
+    }
+    return undefined;
   } catch {
     return undefined;
   }
