@@ -20,6 +20,7 @@ import { postRefine } from "@/lib/api/refine";
 import { postCountTokens } from "@/lib/api/tokens";
 import type { UsageMetadata, RefineUsageBundle, TokenCountResponse, RefineRequest } from "@/domain/types";
 import { getAuthStatus } from "@/lib/api/auth";
+import { CUSTOM_OPTION_ID } from "@/domain/clarifications";
 
 export function Workspace() {
   const [modelId, setModelId] = useState<ModelId>(getDefaultModelId("image"));
@@ -164,7 +165,9 @@ export function Workspace() {
           family,
           rawPrompt: raw,
           instructionPresetId: presetId,
-          answers: Object.entries(answers).filter(([, v]) => v).map(([questionId, optionId]) => ({ questionId, optionId: optionId! })),
+          answers: Object.entries(answers)
+            .filter(([, v]) => v && v !== CUSTOM_OPTION_ID)
+            .map(([questionId, optionId]) => ({ questionId, optionId: optionId! })),
           previousPreviewPrompt: preview,
           previousQuestions: questions,
           context: imageAssets.length ? { image: { assets: imageAssets } } : undefined,
@@ -216,7 +219,7 @@ export function Workspace() {
         rawPrompt: raw,
         instructionPresetId: presetId,
         answers: Object.entries(answers)
-          .filter(([, v]) => v)
+          .filter(([, v]) => v && v !== CUSTOM_OPTION_ID)
           .map(([questionId, optionId]) => ({ questionId, optionId: optionId! })),
         allowPartialAnswers: true,
         previousPreviewPrompt: preview,
