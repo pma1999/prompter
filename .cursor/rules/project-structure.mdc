@@ -27,6 +27,7 @@ This repo is a Next.js App Router frontend for crafting perfect prompts for Gemi
   - Token counting service: [frontend/src/lib/server/tokenService.ts](mdc:frontend/src/lib/server/tokenService.ts)
   - Client APIs: [frontend/src/lib/api/refine.ts](mdc:frontend/src/lib/api/refine.ts), [frontend/src/lib/api/tokens.ts](mdc:frontend/src/lib/api/tokens.ts)
   - Model token budgets: [frontend/src/lib/modelLimits.ts](mdc:frontend/src/lib/modelLimits.ts)
+  - BYOK key store: [frontend/src/lib/server/keyStore.ts](mdc:frontend/src/lib/server/keyStore.ts)
 
 ## Composition Overview
 
@@ -49,12 +50,17 @@ This repo is a Next.js App Router frontend for crafting perfect prompts for Gemi
 - Global styles: [frontend/src/app/globals.css](mdc:frontend/src/app/globals.css)
 - SEO/util files: [manifest.webmanifest](mdc:frontend/src/app/manifest.webmanifest), [robots.txt](mdc:frontend/src/app/robots.txt), [sitemap.xml](mdc:frontend/src/app/sitemap.xml)
  - Tokens preflight API: [frontend/src/app/api/tokens/count/route.ts](mdc:frontend/src/app/api/tokens/count/route.ts)
+ - BYOK auth APIs:
+   - Connect: [frontend/src/app/api/auth/key/route.ts](mdc:frontend/src/app/api/auth/key/route.ts)
+   - Status: [frontend/src/app/api/auth/status/route.ts](mdc:frontend/src/app/api/auth/status/route.ts)
+   - Clear: [frontend/src/app/api/auth/clear/route.ts](mdc:frontend/src/app/api/auth/clear/route.ts)
 
 ## Backend Integration Pointers (next step)
 
 - Strong types live in [domain/types.ts](mdc:frontend/src/domain/types.ts) (`RefineRequest`, `RefineResponse`).
-- Replace mock refinement in `Workspace` with a typed API client (recommended location: `frontend/src/lib/api/refine.ts`).
+- Replace mock refinement in `Workspace` with a typed API client (recommended location: [frontend/src/lib/api/refine.ts](mdc:frontend/src/lib/api/refine.ts)).
 - Use React Query mutations for `/api/refine` and `/api/refine/{conversationId}`; validate responses with zod before updating UI state.
+- BYOK: El cliente no maneja claves; usa cookie HttpOnly `pp.byok.sid`. El servidor resuelve la clave con [keyStore.ts](mdc:frontend/src/lib/server/keyStore.ts) y crea `GoogleGenAI` con `createGenAI(apiKey)`.
 
 ## shadcn Usage
 

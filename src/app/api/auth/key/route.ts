@@ -4,6 +4,10 @@ import { createOrUpdateKeySession } from "@/lib/server/keyStore";
 
 const COOKIE_NAME = "pp.byok.sid";
 
+export const runtime = "nodejs";
+export const preferredRegion = "home";
+export const dynamic = "force-dynamic";
+
 const BodySchema = z.object({
   apiKey: z.string().min(20).max(256),
   rememberHours: z.number().int().positive().max(24 * 7).optional(),

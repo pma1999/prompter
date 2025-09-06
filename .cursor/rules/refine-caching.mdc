@@ -23,6 +23,7 @@ This project implements both implicit and explicit context caching for the refin
   - On GenerateContent calls, send only dynamic suffix contents and set `config.cachedContent`. Do not send `systemInstruction`.
   - Extend TTL on `needs_clarification`; optionally delete on `ready`.
   - Key protection: if client-provided `cache.key` ≠ computed key, ignore the provided cache and create a fresh one.
+  - BYOK: las cachés son específicas por clave y modelo; al cambiar/desconectar la clave, el cliente debe limpiar `cachedContentName`/`key` locales (ya implementado en `Workspace.tsx`).
 - When not using explicit cache: send full contents (images first + full directive) and `systemInstruction`.
 - Logs: `[refine][cache] create|update_ttl|delete|key_mismatch_discard|ensure_error`; `[refine][service] *.usage` if available.
 
@@ -36,6 +37,7 @@ This project implements both implicit and explicit context caching for the refin
 ## Client behavior
 - Persist `cachedContentName` and `key` across a conversation and include them in subsequent `RefineRequest.cache`.
 - Reset (new session, model change, manual reset) clears local `cacheName`/`cacheKey`.
+ - BYOK: en `api-key-connected`/`api-key-disconnected` se limpian `cacheName`/`cacheKey` para evitar reuso cruzado.
 
 ## API Contract additions
 - Request `cache?`: `{ mode?: "off"|"implicit_only"|"explicit_per_request"|"explicit_per_conversation", cachedContentName?: string, key?: string, ttlSeconds?: number, forceRefresh?: boolean }`

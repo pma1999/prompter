@@ -7,6 +7,10 @@ import { getApiKeyForSession } from "@/lib/server/keyStore";
 const COOKIE_NAME = "pp.byok.sid";
 import type { RefineRequest } from "@/domain/types";
 
+export const runtime = "nodejs";
+export const preferredRegion = "home";
+export const dynamic = "force-dynamic";
+
 const AssetRefSchema = z.object({
   id: z.string().optional(),
   name: z.string(),

@@ -3,6 +3,10 @@ import { getSessionExpiry, getApiKeyForSession, cleanupExpiredSessions } from "@
 
 const COOKIE_NAME = "pp.byok.sid";
 
+export const runtime = "nodejs";
+export const preferredRegion = "home";
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   try {
     cleanupExpiredSessions();

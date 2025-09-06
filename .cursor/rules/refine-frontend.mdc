@@ -13,9 +13,12 @@ description: Frontend refine flow – state, context reset, and client logging
 - `postRefine(req)` en [frontend/src/lib/api/refine.ts](mdc:frontend/src/lib/api/refine.ts):
   - POST `/api/refine` con `RefineRequest`.
   - Logging `console.debug` de request (ids, cache hints, previousPreview, previousQuestions y answers) y response (ok, status, body).
- - `postCountTokens(req)` en [frontend/src/lib/api/tokens.ts](mdc:frontend/src/lib/api/tokens.ts):
-   - POST `/api/tokens/count` con la misma forma de `RefineRequest` + `includeCachedPrefix?`.
-   - Devuelve `TokenCountResponse` con `totalTokens` y, si corresponde, `cachedContentTokenCount`.
+- `postCountTokens(req)` en [frontend/src/lib/api/tokens.ts](mdc:frontend/src/lib/api/tokens.ts):
+  - POST `/api/tokens/count` con la misma forma de `RefineRequest` + `includeCachedPrefix?`.
+  - Devuelve `TokenCountResponse` con `totalTokens` y, si corresponde, `cachedContentTokenCount`.
+- BYOK:
+  - No se envía la clave en el cliente; la cookie same-origin `pp.byok.sid` viaja automáticamente.
+  - Se usa `cache: "no-store"` para reflejar inmediatamente cambios de conexión/desconexión.
 
 ## Contexto enviado al backend por turno
 - `RefineRequest` incluye:
@@ -29,6 +32,9 @@ description: Frontend refine flow – state, context reset, and client logging
   - Se limpian `preview`, `questions`, `answers` y `conversationId` para que la próxima pulsación sea una nueva solicitud basada solo en el raw actual.
 - El botón Reset también vacía `conversationId` y limpia el resto del contexto.
   - También se limpian `cacheName`/`cacheKey` locales.
+- BYOK:
+  - El `Workspace` mantiene `hasApiKey` (via `/api/auth/status`) y bloquea acciones si no está conectada.
+  - En eventos `api-key-connected`/`api-key-disconnected` del command bus, se limpian `cacheName`/`cacheKey` para evitar reuso entre claves.
 
 ## Atajos UX
 - Ctrl/⌘+Enter ejecuta refine desde `RawPromptInput`.

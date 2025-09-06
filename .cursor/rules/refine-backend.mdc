@@ -5,11 +5,11 @@ description: Backend refine flow with Gemini 2.5 Flash Lite
 # Backend – Refinamiento de prompts para imagen (Gemini 2.5 Flash Lite)
 
 ## Modelos y librería
-- SDK: `@google/genai` (cliente creado en [frontend/src/lib/server/gemini.ts](mdc:frontend/src/lib/server/gemini.ts)).
+- SDK: `@google/genai` (cliente creado con BYOK vía `createGenAI(apiKey)` en [frontend/src/lib/server/gemini.ts](mdc:frontend/src/lib/server/gemini.ts)).
 - Modelo refiner: `gemini-2.5-flash-lite` (texto), usado para refinar prompts de imagen.
 - Instrucciones del sistema: se toma la persona `image-virtuoso` desde [frontend/src/lib/instructionPresets.ts](mdc:frontend/src/lib/instructionPresets.ts) y se pasa como `systemInstruction` solo cuando NO se usa `cachedContent`.
 - Variables de entorno:
-  - `GEMINI_API_KEY` (requerida por el SDK en servidor).
+  - BYOK: no se usa `GEMINI_API_KEY` en producción. La clave del usuario se obtiene por cookie HttpOnly y store de servidor (ver regla BYOK).
   - `REFINER_THINKING_BUDGET` (opcional; por defecto `24576`).
 
 ## Esquemas de salida (JSON forzado)
@@ -54,8 +54,10 @@ Implementado en [frontend/src/lib/server/refineService.ts](mdc:frontend/src/lib/
 ## Ruta API
 - Endpoint POST `/api/refine` en [frontend/src/app/api/refine/route.ts](mdc:frontend/src/app/api/refine/route.ts):
   - Valida con Zod.
-  - Llama a `refine()` y devuelve `RefineResponse`.
-  - Registra (console.debug/error) payload, validación y salida.
+  - BYOK: lee cookie `pp.byok.sid`, resuelve apiKey desde el store y crea `ai = createGenAI(apiKey)`.
+  - Llama a `refine(ai, req)` y devuelve `RefineResponse`.
+  - Si falta clave, responde `401` con `{ error: { code: "MISSING_API_KEY" } }`.
+  - Logging de prompts (directivas/sufijos) solo en desarrollo; en producción se omiten.
 
 ## Logging (prefijos)
 - ## Métricas de uso de tokens

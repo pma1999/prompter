@@ -16,6 +16,7 @@ Types are defined in [frontend/src/domain/types.ts](mdc:frontend/src/domain/type
   - `context?.image?`: `{ workflow: "generate"|"edit"|"compose", assets?: AssetRef[] }`
   - `cache?`: `{ mode?: "off"|"implicit_only"|"explicit_per_request"|"explicit_per_conversation", cachedContentName?: string, key?: string, ttlSeconds?: number, forceRefresh?: boolean }`
   - `client?`: `{ appVersion?, schemaVersion? }`
+- BYOK: The client never sends `apiKey` in the body. Authentication is via HttpOnly cookie `pp.byok.sid`.
 
 ## Response: 200 OK `RefineResponse`
 
@@ -47,4 +48,5 @@ Validate responses with zod prior to updating UI state.
   - `totalTokens`: number (input tokens for the upcoming call)
   - `cachedContentTokenCount?`: number (tokens of the cached prefix when requested/available)
   - `promptTokensDetails?`, `cacheTokensDetails?`: arrays of `{ modality, tokenCount }`
+- BYOK: Requires cookie `pp.byok.sid`. Returns `401 { error: { code: "MISSING_API_KEY" } }` if missing.
 

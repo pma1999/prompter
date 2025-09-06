@@ -3,6 +3,10 @@ import { deleteSession } from "@/lib/server/keyStore";
 
 const COOKIE_NAME = "pp.byok.sid";
 
+export const runtime = "nodejs";
+export const preferredRegion = "home";
+export const dynamic = "force-dynamic";
+
 export async function POST(req: NextRequest) {
   try {
     const cookie = req.cookies.get(COOKIE_NAME)?.value;

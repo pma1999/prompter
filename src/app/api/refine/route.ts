@@ -6,6 +6,11 @@ import { getApiKeyForSession } from "@/lib/server/keyStore";
 
 const COOKIE_NAME = "pp.byok.sid";
 
+export const runtime = "nodejs";
+export const preferredRegion = "home";
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
 const CacheSchema = z
   .object({
     mode: z.enum(["off", "implicit_only", "explicit_per_request", "explicit_per_conversation"]).optional(),

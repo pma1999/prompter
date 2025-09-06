@@ -1,0 +1,53 @@
+---
+description: Bring Your Own Key (BYOK) – per-user Gemini API keys via HttpOnly cookie + server store
+---
+# BYOK – Per-user Gemini API keys
+
+## Overview
+This project supports Bring Your Own Key (BYOK) for Gemini. Users provide their API key, which is stored securely on the server in an ephemeral key store and referenced by an HttpOnly cookie. All Gemini calls are made server-side using the user’s key.
+
+## Security Principles
+- The API key never appears in client code, requests, or logs.
+- The browser stores only an opaque session id cookie (`pp.byok.sid`) with attributes: HttpOnly, SameSite=Strict, Secure (prod), Path=/api.
+- The server maps `sessionId → { apiKey, expiresAt }` with TTL and renews on access; in-memory by default.
+
+## Files
+- Server key store: [frontend/src/lib/server/keyStore.ts](mdc:frontend/src/lib/server/keyStore.ts)
+  - `createOrUpdateKeySession(apiKey, ttlMs?)` → `{ sessionId, expiresAt }`
+  - `getApiKeyForSession(sessionId, { touch? })` → string | undefined
+  - `getSessionExpiry(sessionId)` → number | undefined
+  - `deleteSession(sessionId)`, `cleanupExpiredSessions()`
+- Gemini client factory: [frontend/src/lib/server/gemini.ts](mdc:frontend/src/lib/server/gemini.ts)
+  - `createGenAI(apiKey)` – required per request; no env fallback.
+- Auth API routes:
+  - Connect key: [frontend/src/app/api/auth/key/route.ts](mdc:frontend/src/app/api/auth/key/route.ts)
+  - Status: [frontend/src/app/api/auth/status/route.ts](mdc:frontend/src/app/api/auth/status/route.ts)
+  - Clear: [frontend/src/app/api/auth/clear/route.ts](mdc:frontend/src/app/api/auth/clear/route.ts)
+- Business API routes:
+  - Refine: [frontend/src/app/api/refine/route.ts](mdc:frontend/src/app/api/refine/route.ts)
+  - Tokens count: [frontend/src/app/api/tokens/count/route.ts](mdc:frontend/src/app/api/tokens/count/route.ts)
+
+## Route Behavior
+- `/api/auth/key` (POST): accepts `{ apiKey, rememberHours? }`, creates session, sets cookie.
+- `/api/auth/status` (GET): returns `{ connected, expiresAt? }`; may clean up expired sessions.
+- `/api/auth/clear` (POST): deletes session and clears cookie.
+- `/api/refine` (POST) and `/api/tokens/count` (POST):
+  - Read `pp.byok.sid`, resolve apiKey with `getApiKeyForSession(..., { touch: true })`.
+  - If missing, return `401 { error: { code: "MISSING_API_KEY" } }`.
+  - Create `ai = createGenAI(apiKey)` and proceed.
+
+## Frontend Integration
+- Status/Connect/Disconnect: [frontend/src/lib/api/auth.ts](mdc:frontend/src/lib/api/auth.ts)
+- UI Manager: [frontend/src/components/common/ApiKeyManager.tsx](mdc:frontend/src/components/common/ApiKeyManager.tsx) – shows connection state, modal to set/remove key.
+- Command palette entry: “Connect API Key”.
+- `Workspace.tsx`: keeps `hasApiKey`, gates refine and preflight; clears `cacheName`/`cacheKey` on key changes.
+
+## Caching Considerations
+- Gemini caches are tied to the caller’s key+model. When the key changes or disconnects, local `cachedContentName`/`key` are reset to avoid cross-key reuse.
+
+## Logging
+- BYOK logs use `[byok][...]` prefixes and never print keys.
+- Prompt-level debug logs in `refineService` (directive/suffixes) are disabled in production.
+
+## Scaling Note
+- The default in-memory store is single-process only. For multi-instance/serverless deployments, replace `keyStore.ts` with a shared KV/Redis-based implementation and preserve the same interface.
