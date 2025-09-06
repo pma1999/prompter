@@ -3,7 +3,7 @@ description: Refine API request/response contracts for backend integration
 ---
 # Refine API Contract (v1)
 
-Types are defined in [frontend/src/domain/types.ts](mdc:frontend/src/domain/types.ts).
+Types are defined in [prompter/src/domain/types.ts](mdc:prompter/src/domain/types.ts).
 
 ## Request: POST /api/refine
 

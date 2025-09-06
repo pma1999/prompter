@@ -11,21 +11,26 @@ This project supports Bring Your Own Key (BYOK) for Gemini. Users provide their 
 - The browser stores only an opaque session id cookie (`pp.byok.sid`) with attributes: HttpOnly, SameSite=Strict, Secure (prod), Path=/api.
 - The server maps `sessionId → { apiKey, expiresAt }` with TTL and renews on access; in-memory by default.
 
+## Runtime and Deployment (Vercel)
+- API routes export `runtime = "nodejs"`, `preferredRegion = "home"`, and `dynamic = "force-dynamic"` to ensure Node runtime (compatible with `@google/genai`) and avoid caching.
+- `next.config.ts` adds no-store/security headers for `/api/*`.
+- Scaling note: prefer a single production region for coherence of the in-memory store. For multi-region/horizontal scale, replace the store with KV/Redis preserving the same interface.
+
 ## Files
-- Server key store: [frontend/src/lib/server/keyStore.ts](mdc:frontend/src/lib/server/keyStore.ts)
+- Server key store: [prompter/src/lib/server/keyStore.ts](mdc:prompter/src/lib/server/keyStore.ts)
   - `createOrUpdateKeySession(apiKey, ttlMs?)` → `{ sessionId, expiresAt }`
   - `getApiKeyForSession(sessionId, { touch? })` → string | undefined
   - `getSessionExpiry(sessionId)` → number | undefined
   - `deleteSession(sessionId)`, `cleanupExpiredSessions()`
-- Gemini client factory: [frontend/src/lib/server/gemini.ts](mdc:frontend/src/lib/server/gemini.ts)
+- Gemini client factory: [prompter/src/lib/server/gemini.ts](mdc:prompter/src/lib/server/gemini.ts)
   - `createGenAI(apiKey)` – required per request; no env fallback.
 - Auth API routes:
-  - Connect key: [frontend/src/app/api/auth/key/route.ts](mdc:frontend/src/app/api/auth/key/route.ts)
-  - Status: [frontend/src/app/api/auth/status/route.ts](mdc:frontend/src/app/api/auth/status/route.ts)
-  - Clear: [frontend/src/app/api/auth/clear/route.ts](mdc:frontend/src/app/api/auth/clear/route.ts)
+  - Connect key: [prompter/src/app/api/auth/key/route.ts](mdc:prompter/src/app/api/auth/key/route.ts)
+  - Status: [prompter/src/app/api/auth/status/route.ts](mdc:prompter/src/app/api/auth/status/route.ts)
+  - Clear: [prompter/src/app/api/auth/clear/route.ts](mdc:prompter/src/app/api/auth/clear/route.ts)
 - Business API routes:
-  - Refine: [frontend/src/app/api/refine/route.ts](mdc:frontend/src/app/api/refine/route.ts)
-  - Tokens count: [frontend/src/app/api/tokens/count/route.ts](mdc:frontend/src/app/api/tokens/count/route.ts)
+  - Refine: [prompter/src/app/api/refine/route.ts](mdc:prompter/src/app/api/refine/route.ts)
+  - Tokens count: [prompter/src/app/api/tokens/count/route.ts](mdc:prompter/src/app/api/tokens/count/route.ts)
 
 ## Route Behavior
 - `/api/auth/key` (POST): accepts `{ apiKey, rememberHours? }`, creates session, sets cookie.
@@ -36,9 +41,9 @@ This project supports Bring Your Own Key (BYOK) for Gemini. Users provide their 
   - If missing, return `401 { error: { code: "MISSING_API_KEY" } }`.
   - Create `ai = createGenAI(apiKey)` and proceed.
 
-## Frontend Integration
-- Status/Connect/Disconnect: [frontend/src/lib/api/auth.ts](mdc:frontend/src/lib/api/auth.ts)
-- UI Manager: [frontend/src/components/common/ApiKeyManager.tsx](mdc:frontend/src/components/common/ApiKeyManager.tsx) – shows connection state, modal to set/remove key.
+- ## Frontend Integration
+- Status/Connect/Disconnect: [prompter/src/lib/api/auth.ts](mdc:prompter/src/lib/api/auth.ts)
+- UI Manager: [prompter/src/components/common/ApiKeyManager.tsx](mdc:prompter/src/components/common/ApiKeyManager.tsx) – shows connection state, modal to set/remove key.
 - Command palette entry: “Connect API Key”.
 - `Workspace.tsx`: keeps `hasApiKey`, gates refine and preflight; clears `cacheName`/`cacheKey` on key changes.
 

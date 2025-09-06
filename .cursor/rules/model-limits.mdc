@@ -1,6 +1,6 @@
 ---
 description: Model token budgets via environment variables
-globs: frontend/src/lib/modelLimits.ts,frontend/src/components/workspace/**/*.tsx
+globs: prompter/src/lib/modelLimits.ts,prompter/src/components/workspace/**/*.tsx
 ---
 # Model Token Budgets
 
@@ -8,7 +8,7 @@ globs: frontend/src/lib/modelLimits.ts,frontend/src/components/workspace/**/*.ts
 Token budgets per model are read from environment variables to enable non-invasive UI warnings and planning. If unset, the UI does not enforce limits and only displays counts.
 
 ## File
-- [modelLimits.ts](mdc:frontend/src/lib/modelLimits.ts)
+- [modelLimits.ts](mdc:prompter/src/lib/modelLimits.ts)
   - `getModelTokenBudget(modelId)`: returns `{ maxInputTokens?, maxOutputTokens?, maxTotalTokens? }` from env.
   - Expected env names (public):
     - `NEXT_PUBLIC_GEMINI_2_5_PRO_MAX_INPUT_TOKENS`

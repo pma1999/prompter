@@ -10,10 +10,10 @@ This project implements both implicit and explicit context caching for the refin
 - Implicit caching requires no code and may reduce costs when large stable prefixes are reused.
 
 ## Key files
-- Server: [refineService.ts](mdc:frontend/src/lib/server/refineService.ts), [cacheService.ts](mdc:frontend/src/lib/server/cacheService.ts)
-- API: [route.ts](mdc:frontend/src/app/api/refine/route.ts)
-- Client: [Workspace.tsx](mdc:frontend/src/components/workspace/Workspace.tsx), [refine.ts](mdc:frontend/src/lib/api/refine.ts)
-- Types: [types.ts](mdc:frontend/src/domain/types.ts)
+- Server: [refineService.ts](mdc:prompter/src/lib/server/refineService.ts), [cacheService.ts](mdc:prompter/src/lib/server/cacheService.ts)
+- API: [route.ts](mdc:prompter/src/app/api/refine/route.ts)
+- Client: [Workspace.tsx](mdc:prompter/src/components/workspace/Workspace.tsx), [refine.ts](mdc:prompter/src/lib/api/refine.ts)
+- Types: [types.ts](mdc:prompter/src/domain/types.ts)
 
 ## Server behavior
 - Default mode is derived from env (see below). Client may request `cache.mode`.

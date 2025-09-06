@@ -1,5 +1,5 @@
 ---
-globs: frontend/src/lib/server/refineService.ts
+globs: prompter/src/lib/server/refineService.ts
 description: Conditional directive note about reference images; applied consistently to all builders
 ---
 ## Directives – Conditional note for reference images

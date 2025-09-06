@@ -1,18 +1,18 @@
 ---
-globs: frontend/src/domain/types.ts,frontend/src/app/api/refine/*.ts
+globs: prompter/src/domain/types.ts,prompter/src/app/api/refine/*.ts
 description: Types and schema for reference images in refine; AssetRef, context.image, validations
 ---
 ## Types & Schema – Reference images
 
 ### Domain types
-- [types.ts](mdc:frontend/src/domain/types.ts)
+- [types.ts](mdc:prompter/src/domain/types.ts)
   - `AssetRef` supports inline images via `dataUri?: string`. Fields: `id?`, `name`, `mimeType`, `sizeBytes?`, `source: "uploaded" | "url"`, `url?`, `dataUri?`.
   - `RefineRequest.context.image`:
     - `assets?: AssetRef[]`
     - `workflow?: "generate" | "edit" | "compose"` (optional; AI infers behavior)
 
 ### API validation
-- [route.ts](mdc:frontend/src/app/api/refine/route.ts)
+- [route.ts](mdc:prompter/src/app/api/refine/route.ts)
   - Validates `context.image.assets` with `AssetRefSchema`.
   - Rules:
     - `source = uploaded` → `dataUri` required

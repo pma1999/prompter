@@ -5,62 +5,70 @@ alwaysApply: true
 
 This repo is a Next.js App Router frontend for crafting perfect prompts for Gemini models. Start here:
 
-- App entry: [frontend/src/app/page.tsx](mdc:frontend/src/app/page.tsx)
-- Root layout & providers injection: [frontend/src/app/layout.tsx](mdc:frontend/src/app/layout.tsx) and [frontend/src/components/providers.tsx](mdc:frontend/src/components/providers.tsx)
-- Main workspace composition: [frontend/src/components/workspace/Workspace.tsx](mdc:frontend/src/components/workspace/Workspace.tsx)
+- App entry: [prompter/src/app/page.tsx](mdc:prompter/src/app/page.tsx)
+- Root layout & providers injection: [prompter/src/app/layout.tsx](mdc:prompter/src/app/layout.tsx) and [prompter/src/components/providers.tsx](mdc:prompter/src/components/providers.tsx)
+- Main workspace composition: [prompter/src/components/workspace/Workspace.tsx](mdc:prompter/src/components/workspace/Workspace.tsx)
 
 ## Key Directories
 
-- UI components (shadcn): [frontend/src/components/ui/](mdc:frontend/src/components/ui/)
-- App shell & common widgets: [frontend/src/components/app/](mdc:frontend/src/components/app/) and [frontend/src/components/common/](mdc:frontend/src/components/common/)
-- Feature UI: [frontend/src/components/workspace/](mdc:frontend/src/components/workspace/)
-- Domain types: [frontend/src/domain/types.ts](mdc:frontend/src/domain/types.ts)
+- UI components (shadcn): [prompter/src/components/ui/](mdc:prompter/src/components/ui/)
+- App shell & common widgets: [prompter/src/components/app/](mdc:prompter/src/components/app/) and [prompter/src/components/common/](mdc:prompter/src/components/common/)
+- Feature UI: [prompter/src/components/workspace/](mdc:prompter/src/components/workspace/)
+- Domain types: [prompter/src/domain/types.ts](mdc:prompter/src/domain/types.ts)
 - Libraries:
-  - Model registry: [frontend/src/lib/models.ts](mdc:frontend/src/lib/models.ts)
-  - Instruction presets (derived per family): [frontend/src/lib/instructionPresets.ts](mdc:frontend/src/lib/instructionPresets.ts)
-  - Local session persistence: [frontend/src/lib/persistence.ts](mdc:frontend/src/lib/persistence.ts)
-  - Token/length estimate: [frontend/src/lib/token.ts](mdc:frontend/src/lib/token.ts)
-  - Command bus: [frontend/src/lib/commandBus.ts](mdc:frontend/src/lib/commandBus.ts)
-  - Server Gemini client: [frontend/src/lib/server/gemini.ts](mdc:frontend/src/lib/server/gemini.ts)
-  - Refine orchestrator & schemas: [frontend/src/lib/server/refineService.ts](mdc:frontend/src/lib/server/refineService.ts), [frontend/src/lib/server/refineSchema.ts](mdc:frontend/src/lib/server/refineSchema.ts)
-  - Caching utilities: [frontend/src/lib/server/cacheService.ts](mdc:frontend/src/lib/server/cacheService.ts)
-  - Token counting service: [frontend/src/lib/server/tokenService.ts](mdc:frontend/src/lib/server/tokenService.ts)
-  - Client APIs: [frontend/src/lib/api/refine.ts](mdc:frontend/src/lib/api/refine.ts), [frontend/src/lib/api/tokens.ts](mdc:frontend/src/lib/api/tokens.ts)
-  - Model token budgets: [frontend/src/lib/modelLimits.ts](mdc:frontend/src/lib/modelLimits.ts)
-  - BYOK key store: [frontend/src/lib/server/keyStore.ts](mdc:frontend/src/lib/server/keyStore.ts)
+  - Model registry: [prompter/src/lib/models.ts](mdc:prompter/src/lib/models.ts)
+  - Instruction presets (derived per family): [prompter/src/lib/instructionPresets.ts](mdc:prompter/src/lib/instructionPresets.ts)
+  - Local session persistence: [prompter/src/lib/persistence.ts](mdc:prompter/src/lib/persistence.ts)
+  - Token/length estimate: [prompter/src/lib/token.ts](mdc:prompter/src/lib/token.ts)
+  - Command bus: [prompter/src/lib/commandBus.ts](mdc:prompter/src/lib/commandBus.ts)
+  - Server Gemini client: [prompter/src/lib/server/gemini.ts](mdc:prompter/src/lib/server/gemini.ts)
+  - Refine orchestrator & schemas: [prompter/src/lib/server/refineService.ts](mdc:prompter/src/lib/server/refineService.ts), [prompter/src/lib/server/refineSchema.ts](mdc:prompter/src/lib/server/refineSchema.ts)
+  - Caching utilities: [prompter/src/lib/server/cacheService.ts](mdc:prompter/src/lib/server/cacheService.ts)
+  - Token counting service: [prompter/src/lib/server/tokenService.ts](mdc:prompter/src/lib/server/tokenService.ts)
+  - Client APIs: [prompter/src/lib/api/refine.ts](mdc:prompter/src/lib/api/refine.ts), [prompter/src/lib/api/tokens.ts](mdc:prompter/src/lib/api/tokens.ts)
+  - Model token budgets: [prompter/src/lib/modelLimits.ts](mdc:prompter/src/lib/modelLimits.ts)
+  - BYOK key store: [prompter/src/lib/server/keyStore.ts](mdc:prompter/src/lib/server/keyStore.ts)
 
 ## Composition Overview
 
 - `Workspace` orchestrates:
-  - Model selection: [ModelSwitch.tsx](mdc:frontend/src/components/workspace/ModelSwitch.tsx)
-  - Minimal tips banner: [GuidePanel.tsx](mdc:frontend/src/components/workspace/GuidePanel.tsx)
-  - Image templates: [ImageTemplatePicker.tsx](mdc:frontend/src/components/workspace/ImageTemplatePicker.tsx)
-  - Raw input: [RawPromptInput.tsx](mdc:frontend/src/components/workspace/RawPromptInput.tsx)
-  - Clarifications: [ClarificationPanel.tsx](mdc:frontend/src/components/workspace/ClarificationPanel.tsx)
-  - Actions: [ActionBar.tsx](mdc:frontend/src/components/workspace/ActionBar.tsx)
-  - Preview/Final: [PreviewAndFinal.tsx](mdc:frontend/src/components/workspace/PreviewAndFinal.tsx)
-  - Sessions sidebar: [SessionsSidebar.tsx](mdc:frontend/src/components/workspace/SessionsSidebar.tsx)
+  - Model selection: [ModelSwitch.tsx](mdc:prompter/src/components/workspace/ModelSwitch.tsx)
+  - Minimal tips banner: [GuidePanel.tsx](mdc:prompter/src/components/workspace/GuidePanel.tsx)
+  - Image templates: [ImageTemplatePicker.tsx](mdc:prompter/src/components/workspace/ImageTemplatePicker.tsx)
+  - Raw input: [RawPromptInput.tsx](mdc:prompter/src/components/workspace/RawPromptInput.tsx)
+  - Clarifications: [ClarificationPanel.tsx](mdc:prompter/src/components/workspace/ClarificationPanel.tsx)
+  - Actions: [ActionBar.tsx](mdc:prompter/src/components/workspace/ActionBar.tsx)
+  - Preview/Final: [PreviewAndFinal.tsx](mdc:prompter/src/components/workspace/PreviewAndFinal.tsx)
+  - Sessions sidebar: [SessionsSidebar.tsx](mdc:prompter/src/components/workspace/SessionsSidebar.tsx)
 
 ## Providers
 
-- Theming (`next-themes`), React Query (`@tanstack/react-query`), and toasts (`sonner`) are wired in [providers.tsx](mdc:frontend/src/components/providers.tsx).
+- Theming (`next-themes`), React Query (`@tanstack/react-query`), and toasts (`sonner`) are wired in [providers.tsx](mdc:prompter/src/components/providers.tsx).
 
 ## Routing & Assets
 
-- Global styles: [frontend/src/app/globals.css](mdc:frontend/src/app/globals.css)
-- SEO/util files: [manifest.webmanifest](mdc:frontend/src/app/manifest.webmanifest), [robots.txt](mdc:frontend/src/app/robots.txt), [sitemap.xml](mdc:frontend/src/app/sitemap.xml)
- - Tokens preflight API: [frontend/src/app/api/tokens/count/route.ts](mdc:frontend/src/app/api/tokens/count/route.ts)
+- Global styles: [prompter/src/app/globals.css](mdc:prompter/src/app/globals.css)
+- SEO/util files: [manifest.webmanifest](mdc:prompter/src/app/manifest.webmanifest), [robots.txt](mdc:prompter/src/app/robots.txt), [sitemap.xml](mdc:prompter/src/app/sitemap.xml)
+ - Tokens preflight API: [prompter/src/app/api/tokens/count/route.ts](mdc:prompter/src/app/api/tokens/count/route.ts)
  - BYOK auth APIs:
-   - Connect: [frontend/src/app/api/auth/key/route.ts](mdc:frontend/src/app/api/auth/key/route.ts)
-   - Status: [frontend/src/app/api/auth/status/route.ts](mdc:frontend/src/app/api/auth/status/route.ts)
-   - Clear: [frontend/src/app/api/auth/clear/route.ts](mdc:frontend/src/app/api/auth/clear/route.ts)
+   - Connect: [prompter/src/app/api/auth/key/route.ts](mdc:prompter/src/app/api/auth/key/route.ts)
+   - Status: [prompter/src/app/api/auth/status/route.ts](mdc:prompter/src/app/api/auth/status/route.ts)
+   - Clear: [prompter/src/app/api/auth/clear/route.ts](mdc:prompter/src/app/api/auth/clear/route.ts)
+
+## Platform Headers
+
+- API headers are configured in [prompter/next.config.ts](mdc:prompter/next.config.ts) using `headers()` for `/api/:path*`:
+  - `Cache-Control: no-store, no-cache, must-revalidate`
+  - `X-Content-Type-Options: nosniff`
+  - `Referrer-Policy: no-referrer`
+  - `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`
 
 ## Backend Integration Pointers (next step)
 
-- Strong types live in [domain/types.ts](mdc:frontend/src/domain/types.ts) (`RefineRequest`, `RefineResponse`).
-- Replace mock refinement in `Workspace` with a typed API client (recommended location: [frontend/src/lib/api/refine.ts](mdc:frontend/src/lib/api/refine.ts)).
+- Strong types live in [domain/types.ts](mdc:prompter/src/domain/types.ts) (`RefineRequest`, `RefineResponse`).
+- Replace mock refinement in `Workspace` with a typed API client (recommended location: [prompter/src/lib/api/refine.ts](mdc:prompter/src/lib/api/refine.ts)).
 - Use React Query mutations for `/api/refine` and `/api/refine/{conversationId}`; validate responses with zod before updating UI state.
-- BYOK: El cliente no maneja claves; usa cookie HttpOnly `pp.byok.sid`. El servidor resuelve la clave con [keyStore.ts](mdc:frontend/src/lib/server/keyStore.ts) y crea `GoogleGenAI` con `createGenAI(apiKey)`.
+- BYOK: El cliente no maneja claves; usa cookie HttpOnly `pp.byok.sid`. El servidor resuelve la clave con [keyStore.ts](mdc:prompter/src/lib/server/keyStore.ts) y crea `GoogleGenAI` con `createGenAI(apiKey)`.
 
 ## shadcn Usage
 

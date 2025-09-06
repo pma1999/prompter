@@ -1,6 +1,6 @@
 ---
 description: How we use shadcn in this project
-globs: frontend/src/components/**/*.tsx
+globs: prompter/src/components/**/*.tsx
 ---
 # shadcn Usage Guidelines
 

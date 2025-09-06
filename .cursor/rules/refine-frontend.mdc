@@ -1,5 +1,5 @@
 ---
-globs: frontend/src/components/workspace/**/*.tsx,frontend/src/lib/api/**/*.ts
+globs: prompter/src/components/workspace/**/*.tsx,prompter/src/lib/api/**/*.ts
 description: Frontend refine flow – state, context reset, and client logging
 ---
 # Frontend – Flujo de refinamiento y gestión de contexto
@@ -10,10 +10,10 @@ description: Frontend refine flow – state, context reset, and client logging
 - `PreviewAndFinal.tsx` muestra preview y definitivo.
 
 ## Cliente API
-- `postRefine(req)` en [frontend/src/lib/api/refine.ts](mdc:frontend/src/lib/api/refine.ts):
+- `postRefine(req)` en [prompter/src/lib/api/refine.ts](mdc:prompter/src/lib/api/refine.ts):
   - POST `/api/refine` con `RefineRequest`.
   - Logging `console.debug` de request (ids, cache hints, previousPreview, previousQuestions y answers) y response (ok, status, body).
-- `postCountTokens(req)` en [frontend/src/lib/api/tokens.ts](mdc:frontend/src/lib/api/tokens.ts):
+- `postCountTokens(req)` en [prompter/src/lib/api/tokens.ts](mdc:prompter/src/lib/api/tokens.ts):
   - POST `/api/tokens/count` con la misma forma de `RefineRequest` + `includeCachedPrefix?`.
   - Devuelve `TokenCountResponse` con `totalTokens` y, si corresponde, `cachedContentTokenCount`.
 - BYOK:

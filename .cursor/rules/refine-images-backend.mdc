@@ -1,5 +1,5 @@
 ---
-globs: frontend/src/lib/server/*.ts,frontend/src/app/api/refine/*.ts
+globs: prompter/src/lib/server/*.ts,prompter/src/app/api/refine/*.ts
 description: Backend multimodal refine flow with reference images; how images are included, conditional directive line, and limits
 ---
 ## Backend – Reference images in refine flow
@@ -7,11 +7,11 @@ description: Backend multimodal refine flow with reference images; how images ar
 This project supports attaching 1–4 reference images to the image prompt refinement flow. Images are sent to the refiner for grounding and also to the final gemini-2.5-flash-image generation step.
 
 ### Key files
-- [refineService.ts](mdc:frontend/src/lib/server/refineService.ts)
-- [route.ts](mdc:frontend/src/app/api/refine/route.ts)
+- [refineService.ts](mdc:prompter/src/lib/server/refineService.ts)
+- [route.ts](mdc:prompter/src/app/api/refine/route.ts)
 
 ### How images are passed to Gemini
-- `buildUserContents(text, assets)` in [refineService.ts](mdc:frontend/src/lib/server/refineService.ts) constructs multimodal `contents`:
+- `buildUserContents(text, assets)` in [refineService.ts](mdc:prompter/src/lib/server/refineService.ts) constructs multimodal `contents`:
   - Each `AssetRef` with `dataUri` becomes an `inlineData` image part.
   - Images are placed first, followed by a `{ text }` part with el texto.
 - En modo explícito, las imágenes se incluyen en el PREFIJO cacheado via `buildCachedPrefix(...)` + `buildCachedContents(...)`. Los sufijos dinámicos NO reenvían imágenes.
@@ -28,5 +28,5 @@ This project supports attaching 1–4 reference images to the image prompt refin
 - Accepted types are enforced on the client (PNG, JPEG, WEBP, HEIC/HEIF).
 
 ### Recommended answers highlighting
-- The server normalizes `questions` by marking the recommended option using `recommendedAnswers` if the model omitted the `recommended` flag. See `annotateRecommendedOptions` in [refineService.ts](mdc:frontend/src/lib/server/refineService.ts).
+- The server normalizes `questions` by marking the recommended option using `recommendedAnswers` if the model omitted the `recommended` flag. See `annotateRecommendedOptions` in [refineService.ts](mdc:prompter/src/lib/server/refineService.ts).
 

@@ -1,18 +1,18 @@
 ---
-globs: frontend/src/components/workspace/*.tsx
+globs: prompter/src/components/workspace/*.tsx
 description: Image reference uploader UI, integration into Workspace, and UX guidance
 ---
 ## UI – Reference image uploader
 
 ### Components
-- [ImageReferenceUploader.tsx](mdc:frontend/src/components/workspace/ImageReferenceUploader.tsx)
+- [ImageReferenceUploader.tsx](mdc:prompter/src/components/workspace/ImageReferenceUploader.tsx)
   - Controlled props: `assets`, `onChangeAssets`.
   - Features: add (multi-file), preview grid, remove, clear; accepts PNG/JPEG/WEBP/HEIC/HEIF.
   - Warns near ~18MB total to stay under ~20MB API inline limit.
   - No workflow selector (AI infers).
 
 ### Integration
-- [Workspace.tsx](mdc:frontend/src/components/workspace/Workspace.tsx)
+- [Workspace.tsx](mdc:prompter/src/components/workspace/Workspace.tsx)
   - Shows uploader only for image family.
   - Sends `context.image.assets` when non-empty in refine request.
   - Resets assets on new/import/reset and after finalized result.
