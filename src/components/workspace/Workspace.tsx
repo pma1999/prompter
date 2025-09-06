@@ -190,8 +190,18 @@ export function Workspace() {
       return;
     }
     if (!hasApiKey) {
-      toast.error("Connect your Gemini API key to continue.");
-      return;
+      try {
+        const s = await getAuthStatus();
+        if (s.connected) {
+          setHasApiKey(true);
+        } else {
+          toast.error("Connect your Gemini API key to continue.");
+          return;
+        }
+      } catch {
+        toast.error("Connect your Gemini API key to continue.");
+        return;
+      }
     }
     if (family !== "image") {
       toast.error("This version currently supports Image prompt refinement only.");

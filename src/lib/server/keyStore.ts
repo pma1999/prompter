@@ -7,8 +7,10 @@ interface KeySession {
 
 const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 
-// In-memory store (swap with Redis/KV in multi-instance deployments)
-const sessionIdToSession = new Map<string, KeySession>();
+// In-memory store with dev-HMR persistence. In production, swap with Redis/KV.
+type GlobalWithKeyStore = typeof globalThis & { __ppByokStore?: Map<string, KeySession> };
+const g = globalThis as GlobalWithKeyStore;
+const sessionIdToSession: Map<string, KeySession> = g.__ppByokStore ?? (g.__ppByokStore = new Map<string, KeySession>());
 
 function now(): number {
   return Date.now();
