@@ -362,13 +362,13 @@ export function Workspace() {
         <ActionBar onRefine={onRefine} onReset={onReset} onSave={onSave} onExport={onExport} busy={busy} preflight={preflight} />
         {/* Mobile outputs inline (desktop uses right column) */}
         <div className="lg:hidden space-y-4">
-          <PreviewPromptCard value={preview} usage={usage?.preview || usage?.primary} onCopy={onCopyPreview} onInsert={() => setRaw(preview || "")} />
+          <PreviewPromptCard value={preview} usage={usage?.preview || usage?.primary} onCopy={onCopyPreview} onInsert={() => setRaw(preview || "")} onChange={(v) => setPreview(v)} />
           <PerfectedPromptCard value={finalPrompt} usage={cumulativeUsage || usage?.aggregate || usage?.final || usage?.primary} onChange={(v) => setFinalPrompt(v)} />
         </div>
       </div>
     )} right={(
       <div>
-        <PreviewPromptCard value={preview} usage={usage?.preview || usage?.primary} onCopy={onCopyPreview} onInsert={() => setRaw(preview || "")} />
+        <PreviewPromptCard value={preview} usage={usage?.preview || usage?.primary} onCopy={onCopyPreview} onInsert={() => setRaw(preview || "")} onChange={(v) => setPreview(v)} />
         <PerfectedPromptCard value={finalPrompt} usage={cumulativeUsage || usage?.aggregate || usage?.final || usage?.primary} onChange={(v) => setFinalPrompt(v)} />
       </div>
     )} />
