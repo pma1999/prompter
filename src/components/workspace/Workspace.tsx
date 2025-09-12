@@ -363,13 +363,13 @@ export function Workspace() {
         {/* Mobile outputs inline (desktop uses right column) */}
         <div className="lg:hidden space-y-4">
           <PreviewPromptCard value={preview} usage={usage?.preview || usage?.primary} onCopy={onCopyPreview} onInsert={() => setRaw(preview || "")} />
-          <PerfectedPromptCard value={finalPrompt} usage={cumulativeUsage || usage?.aggregate || usage?.final || usage?.primary} />
+          <PerfectedPromptCard value={finalPrompt} usage={cumulativeUsage || usage?.aggregate || usage?.final || usage?.primary} onChange={(v) => setFinalPrompt(v)} />
         </div>
       </div>
     )} right={(
       <div>
         <PreviewPromptCard value={preview} usage={usage?.preview || usage?.primary} onCopy={onCopyPreview} onInsert={() => setRaw(preview || "")} />
-        <PerfectedPromptCard value={finalPrompt} usage={cumulativeUsage || usage?.aggregate || usage?.final || usage?.primary} />
+        <PerfectedPromptCard value={finalPrompt} usage={cumulativeUsage || usage?.aggregate || usage?.final || usage?.primary} onChange={(v) => setFinalPrompt(v)} />
       </div>
     )} />
   );

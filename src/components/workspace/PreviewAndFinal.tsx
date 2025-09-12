@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { estimateTextMetrics } from "@/lib/token";
@@ -32,7 +33,7 @@ export function PreviewPromptCard({ value, usage, onCopy, onInsert }: { value?: 
   );
 }
 
-export function PerfectedPromptCard({ value, usage }: { value?: string; usage?: UsageMetadata }) {
+export function PerfectedPromptCard({ value, usage, onChange }: { value?: string; usage?: UsageMetadata; onChange: (next: string) => void }) {
   if (!value) return null;
   const m = estimateTextMetrics(value);
   return (
@@ -41,7 +42,7 @@ export function PerfectedPromptCard({ value, usage }: { value?: string; usage?: 
         <CardTitle className="text-sm">The Perfected Prompt</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <pre className="text-sm whitespace-pre-wrap bg-muted p-3 rounded-md max-h-[60vh] md:max-h-[420px] overflow-auto">{value}</pre>
+        <Textarea value={value} onChange={(e) => onChange(e.target.value)} className="text-sm bg-muted p-3 rounded-md resize-y min-h-[120px] max-h-[60vh] md:max-h-[420px]" aria-label="Perfected prompt editor" />
         <div className="text-xs text-muted-foreground">
           {typeof usage?.cachedContentTokenCount === "number" && (
             <span>Cached {usage.cachedContentTokenCount} • </span>
