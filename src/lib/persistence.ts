@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { SessionData } from "@/domain/types";
+import { emitCommand } from "@/lib/commandBus";
 
 const SESSION_STORAGE_KEY = "pp.sessions";
 
@@ -60,6 +61,7 @@ export function loadSessions(): SessionData[] {
 export function saveSessions(sessions: SessionData[]) {
   if (typeof window === "undefined") return;
   localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessions));
+  try { emitCommand("sessions-updated"); } catch {}
 }
 
 export function upsertSession(next: SessionData) {
@@ -90,4 +92,13 @@ export function importSession(json: string): SessionData | null {
   } catch {
     return null;
   }
+}
+
+export function renameSession(id: string, name: string) {
+  const all = loadSessions();
+  const idx = all.findIndex((s) => s.meta.id === id);
+  if (idx < 0) return;
+  all[idx].meta.name = name || "Untitled Session";
+  all[idx].meta.updatedAt = Date.now();
+  saveSessions(all);
 }

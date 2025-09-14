@@ -6,9 +6,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { MODELS } from "@/lib/models";
-import { deleteSession, exportSession, importSession, loadSessions, upsertSession } from "@/lib/persistence";
+import { deleteSession, exportSession, importSession, loadSessions, upsertSession, renameSession } from "@/lib/persistence";
 import { SessionData } from "@/domain/types";
 import { toast } from "sonner";
+import { subscribeCommands } from "@/lib/commandBus";
 
 export function SessionsSidebar({ onSelect }: { onSelect: (session: SessionData) => void }) {
   const [sessions, setSessions] = useState<SessionData[]>([]);
@@ -16,6 +17,24 @@ export function SessionsSidebar({ onSelect }: { onSelect: (session: SessionData)
 
   useEffect(() => {
     setSessions(loadSessions());
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = subscribeCommands((cmd) => {
+      if (cmd === "sessions-updated") {
+        setSessions(loadSessions());
+      }
+    });
+    function onStorage(e: StorageEvent) {
+      if (e.key === "pp.sessions") {
+        setSessions(loadSessions());
+      }
+    }
+    window.addEventListener("storage", onStorage);
+    return () => {
+      unsubscribe();
+      window.removeEventListener("storage", onStorage);
+    };
   }, []);
 
   const filtered = useMemo(() => {
@@ -66,13 +85,8 @@ export function SessionsSidebar({ onSelect }: { onSelect: (session: SessionData)
   }
 
   function rename(id: string, name: string) {
-    const all = loadSessions();
-    const idx = all.findIndex((x) => x.meta.id === id);
-    if (idx < 0) return;
-    all[idx].meta.name = name || "Untitled Session";
-    all[idx].meta.updatedAt = Date.now();
-    localStorage.setItem("pp.sessions", JSON.stringify(all));
-    setSessions(all);
+    renameSession(id, name);
+    setSessions(loadSessions());
   }
 
   return (
