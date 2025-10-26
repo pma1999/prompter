@@ -112,7 +112,7 @@ User Agent: ${userAgent}
     return NextResponse.json({ success: true });
   } catch (error) {
     // Log detailed error information and attempt to surface Resend-specific errors
-    let errObj: any = null;
+    let errObj: unknown = null;
 
     if (error instanceof Error) {
       console.error('[feedback][email-error] Error sending feedback email:', {
@@ -120,18 +120,35 @@ User Agent: ${userAgent}
         message: error.message,
         stack: error.stack,
       });
-      // @ts-ignore - some SDK error shapes may include `error` or `response`
-      errObj = (error as any).error || (error as any).response || (error as any);
+
+      const maybeErr = error as unknown as Record<string, unknown>;
+      const sdkError = maybeErr.error ?? maybeErr.response ?? maybeErr;
+      errObj = sdkError ?? null;
+
       if (errObj) {
         console.error('[feedback][email-error][details]', errObj);
       }
     } else {
-      errObj = (error as any) || null;
+      // Non-Error thrown (e.g., string or plain object)
+      errObj = error ?? null;
       console.error('[feedback][email-error] Non-error thrown:', error);
     }
 
-    const statusCode = errObj?.statusCode || errObj?.status || errObj?.error?.statusCode || null;
-    const errMessage = errObj?.message || errObj?.error?.message || (error instanceof Error ? error.message : undefined);
+    const getNestedValue = (obj: unknown, path: string[]) => {
+      if (!obj || typeof obj !== 'object') return undefined;
+      let current: unknown = obj;
+      for (const key of path) {
+        if (typeof current !== 'object' || current === null || !(key in current)) return undefined;
+        current = (current as Record<string, unknown>)[key];
+      }
+      return current;
+    };
+
+    const rawStatus = getNestedValue(errObj, ['statusCode']) ?? getNestedValue(errObj, ['status']) ?? getNestedValue(errObj, ['error', 'statusCode']);
+    const statusCode = typeof rawStatus === 'number' ? rawStatus : (typeof rawStatus === 'string' && /^\d+$/.test(rawStatus) ? Number(rawStatus) : null);
+
+    const rawMessage = getNestedValue(errObj, ['message']) ?? getNestedValue(errObj, ['error', 'message']);
+    const errMessage = typeof rawMessage === 'string' ? rawMessage : (error instanceof Error ? error.message : undefined);
 
     // Map Resend 403 validation error (unverified sender domain) to a clear frontend message
     if (statusCode === 403 || (typeof errMessage === 'string' && /not verified|domain is not verified|not verificado/i.test(errMessage))) {
