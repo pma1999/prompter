@@ -82,7 +82,7 @@ export function FeedbackDialog({ open, onOpenChange }: { open: boolean; onOpenCh
               disabled={busy}
             />
             <p className="text-xs text-muted-foreground">
-              If you'd like a response, leave your email.
+              If you&apos;d like a response, leave your email.
             </p>
           </div>
           <DialogFooter>

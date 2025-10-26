@@ -58,13 +58,22 @@ export function ApiKeyManager({ onStatusChange }: { onStatusChange?: (connected:
       await disconnectApiKey();
       setConnected(false);
       setExpiresAt(undefined);
-      toast.message("Disconnected");
+      toast.success("Disconnected");
       onStatusChange?.(false);
       emitCommand("api-key-disconnected");
     } catch {} finally { setBusy(false); }
   }
 
-  const label = useMemo(() => connected ? "Key: Connected" : "Key: Not Connected", [connected]);
+  const label = useMemo(() => {
+    if (connected) {
+      if (expiresAt) {
+        const date = expiresAt > 1e12 ? new Date(expiresAt) : new Date(expiresAt * 1000);
+        return `Key: Connected (expires ${date.toLocaleString()})`;
+      }
+      return "Key: Connected";
+    }
+    return "Key: Not Connected";
+  }, [connected, expiresAt]);
 
   return (
     <>
