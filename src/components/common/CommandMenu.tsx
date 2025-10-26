@@ -3,7 +3,7 @@
 import * as React from "react";
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
-import { Command, FolderPlus, Import, Save, BookOpenText, Keyboard } from "lucide-react";
+import { Command, FolderPlus, Import, Save, BookOpenText, Keyboard, MessageSquare } from "lucide-react";
 import { emitCommand } from "@/lib/commandBus";
 
 export function CommandMenu() {
@@ -64,6 +64,13 @@ export function CommandMenu() {
           <CommandGroup heading="Settings">
             <CommandItem onSelect={() => run("connect-api-key")}>
               Connect API Key
+            </CommandItem>
+          </CommandGroup>
+          <CommandSeparator />
+          <CommandGroup heading="Feedback">
+            <CommandItem onSelect={() => run("open-feedback")}>
+              <MessageSquare className="mr-2 size-4" />
+              Provide Feedback
             </CommandItem>
           </CommandGroup>
         </CommandList>

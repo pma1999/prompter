@@ -132,6 +132,8 @@ To optimize performance and reduce costs, the application leverages Gemini's con
 | `REFINER_EXPLICIT_CACHE_ENABLED`  | Enables the explicit per-conversation caching feature.                               | `false`       | No              |
 | `REFINER_CACHE_MODE`              | Sets the default cache mode.                                                         | `implicit_only` | No              |
 | `REFINER_CACHE_DEFAULT_TTL_SECONDS` | Default time-to-live for explicit caches in seconds.                                 | `900`         | No              |
+| `RESEND_API_KEY`                  | API key for Resend email service used for sending user feedback.                     | `""`          | **Yes**         |
+| `FEEDBACK_EMAIL`                  | Email address to receive user feedback submissions.                                  | `""`          | **Yes**         |
 
 ## License
 

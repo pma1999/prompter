@@ -7,7 +7,8 @@ export type AppCommand =
   | "connect-api-key"
   | "api-key-connected"
   | "api-key-disconnected"
-  | "sessions-updated";
+  | "sessions-updated"
+  | "open-feedback";
 
 const EVENT_NAME = "pp:command";
 
