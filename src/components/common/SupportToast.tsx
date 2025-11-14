@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Coffee, X } from "lucide-react"
 import { dismissSupport, snoozeSupport, neverShowAgain, shouldOfferNeverShowAgain, recordToastShown } from "@/lib/supportTracking"
@@ -15,6 +15,26 @@ interface SupportToastProps {
 export function SupportToast({ onClose, milestone }: SupportToastProps) {
   const [isPaused, setIsPaused] = useState(false)
   const [showNeverOption, setShowNeverOption] = useState(false)
+
+  const handleNotNow = useCallback(() => {
+    dismissSupport()
+    onClose()
+  }, [onClose])
+
+  const handleSupport = useCallback(() => {
+    window.open(SUPPORT_URL, "_blank", "noopener,noreferrer")
+    onClose()
+  }, [onClose])
+
+  const handleSnooze = useCallback(() => {
+    snoozeSupport()
+    onClose()
+  }, [onClose])
+
+  const handleNeverShow = useCallback(() => {
+    neverShowAgain()
+    onClose()
+  }, [onClose])
 
   useEffect(() => {
     // Record that toast was shown
@@ -42,26 +62,6 @@ export function SupportToast({ onClose, milestone }: SupportToastProps) {
       if (timer) clearTimeout(timer)
     }
   }, [isPaused, handleNotNow])
-
-  const handleSupport = () => {
-    window.open(SUPPORT_URL, "_blank", "noopener,noreferrer")
-    onClose()
-  }
-
-  const handleNotNow = () => {
-    dismissSupport()
-    onClose()
-  }
-
-  const handleSnooze = () => {
-    snoozeSupport()
-    onClose()
-  }
-
-  const handleNeverShow = () => {
-    neverShowAgain()
-    onClose()
-  }
 
   const getMessage = () => {
     if (milestone && milestone >= 25) {
