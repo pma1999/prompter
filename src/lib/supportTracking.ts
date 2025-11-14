@@ -75,8 +75,7 @@ export function trackSuccessAndCheckShow(): boolean {
   
   // Increment success count
   tracking.stats.totalSuccessfulRefinements += 1;
-  const count = tracking.stats.totalSuccessfulRefinements;
-  
+
   // Save updated count
   saveTracking(tracking);
   
