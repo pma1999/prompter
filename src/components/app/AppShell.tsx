@@ -11,6 +11,7 @@ import { CommandMenu } from "@/components/common/CommandMenu";
 import { ApiKeyManager } from "@/components/common/ApiKeyManager";
 import { FeedbackButton } from "@/components/common/FeedbackButton";
 import { FeedbackDialog } from "@/components/common/FeedbackDialog";
+import { AppFooter } from "@/components/common/AppFooter";
 import { MessageSquare } from "lucide-react";
 import { subscribeCommands, emitCommand } from "@/lib/commandBus";
 import { useEffect, useRef, useState } from "react";
@@ -127,6 +128,7 @@ export function AppShell({ left, center, right }: { left: ReactNode; center: Rea
               <main className="min-h-[calc(100dvh-56px)]">{center}</main>
               <aside className="min-h-[calc(100dvh-56px)] border-l pl-4 hidden lg:block">{right}</aside>
             </div>
+            <AppFooter />
           </SidebarInset>
         </div>
       </SidebarProvider>

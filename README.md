@@ -19,6 +19,14 @@ Prompt Perfection is an advanced, open-source web application for crafting, refi
 -   **Advanced Caching:** Utilizes Gemini's explicit context caching to significantly reduce token consumption on iterative refinements by caching the stable parts of your prompt.
 -   **Modern Tech Stack:** Built with the Next.js App Router, TypeScript, and shadcn/ui for a fast, type-safe, and beautiful user experience.
 
+## Support This Project
+
+Prompt Perfection is free and open-source. If you find it valuable, consider supporting its development:
+
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-☕-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/pablomiar)
+
+Your support helps maintain the project and add new features. Thank you! 🙏
+
 ## Tech Stack
 
 -   **Framework:** [Next.js](https://nextjs.org/) (App Router)

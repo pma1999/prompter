@@ -21,6 +21,8 @@ import { postCountTokens } from "@/lib/api/tokens";
 import type { UsageMetadata, RefineUsageBundle, TokenCountResponse, RefineRequest } from "@/domain/types";
 import { getAuthStatus } from "@/lib/api/auth";
 import { CUSTOM_OPTION_ID } from "@/domain/clarifications";
+import { SupportToast } from "@/components/common/SupportToast";
+import { trackSuccessAndCheckShow, getTrackingStats } from "@/lib/supportTracking";
 
 export function Workspace() {
   const [modelId, setModelId] = useState<ModelId>(getDefaultModelId("image"));
@@ -42,6 +44,9 @@ export function Workspace() {
   const [cumulativeUsage, setCumulativeUsage] = useState<UsageMetadata | undefined>(undefined);
   const [preflight, setPreflight] = useState<TokenCountResponse | undefined>(undefined);
   const [hasApiKey, setHasApiKey] = useState<boolean>(false);
+  const [showSupportToast, setShowSupportToast] = useState(false);
+  const [supportMilestone, setSupportMilestone] = useState<number | undefined>(undefined);
+  
   useEffect(() => {
     (async () => {
       try {
@@ -271,6 +276,15 @@ export function Workspace() {
 
       if (resp.status === "ready" && resp.perfectedPrompt) {
         toast.success("Perfected prompt ready");
+        
+        // Check if we should show support toast
+        const shouldShow = trackSuccessAndCheckShow();
+        if (shouldShow) {
+          const stats = getTrackingStats();
+          setSupportMilestone(stats.stats.totalSuccessfulRefinements);
+          setShowSupportToast(true);
+        }
+        
         // Keep clarifications, images, and conversation context so user can edit and re-refine
       } else if (resp.status === "needs_clarification") {
         toast.message("Answer a few clarifying questions to refine further");
@@ -346,31 +360,39 @@ export function Workspace() {
   }
 
   return (
-    <AppShell left={<LeftSidebar onSelect={onSelectSession} />} center={(
-      <div className="space-y-4">
-        <ModelSwitch value={modelId} onChange={handleModelChange} />
-        <GuidePanel family={family} />
-        {family === "image" && <ImageTemplatePicker onInsert={handleInsertTemplate} />}
-        {family === "image" && (
-          <ImageReferenceUploader assets={imageAssets} onChangeAssets={setImageAssets} />
-        )}
-        <RawPromptInput value={raw} onChange={setRaw} onSubmit={onRefine} placeholder={family === "image" ? "Describe your vision… (Purpose, subject, lighting, camera, mood)" : "Describe your goal… (Audience, constraints, desired format)"} />
-        {!hasApiKey && (
-          <div className="text-sm text-amber-600 dark:text-amber-500">Connect your Gemini API key using the button in the top right to enable refinement.</div>
-        )}
-        {questions && <ClarificationPanel questions={questions} answers={answers} onAnswer={onAnswer} />}
-        <ActionBar onRefine={onRefine} onReset={onReset} onSave={onSave} onExport={onExport} busy={busy} preflight={preflight} />
-        {/* Mobile outputs inline (desktop uses right column) */}
-        <div className="lg:hidden space-y-4">
+    <>
+      <AppShell left={<LeftSidebar onSelect={onSelectSession} />} center={(
+        <div className="space-y-4">
+          <ModelSwitch value={modelId} onChange={handleModelChange} />
+          <GuidePanel family={family} />
+          {family === "image" && <ImageTemplatePicker onInsert={handleInsertTemplate} />}
+          {family === "image" && (
+            <ImageReferenceUploader assets={imageAssets} onChangeAssets={setImageAssets} />
+          )}
+          <RawPromptInput value={raw} onChange={setRaw} onSubmit={onRefine} placeholder={family === "image" ? "Describe your vision… (Purpose, subject, lighting, camera, mood)" : "Describe your goal… (Audience, constraints, desired format)"} />
+          {!hasApiKey && (
+            <div className="text-sm text-amber-600 dark:text-amber-500">Connect your Gemini API key using the button in the top right to enable refinement.</div>
+          )}
+          {questions && <ClarificationPanel questions={questions} answers={answers} onAnswer={onAnswer} />}
+          <ActionBar onRefine={onRefine} onReset={onReset} onSave={onSave} onExport={onExport} busy={busy} preflight={preflight} />
+          {/* Mobile outputs inline (desktop uses right column) */}
+          <div className="lg:hidden space-y-4">
+            <PreviewPromptCard value={preview} usage={usage?.preview || usage?.primary} onCopy={onCopyPreview} onInsert={() => setRaw(preview || "")} onChange={(v) => setPreview(v)} />
+            <PerfectedPromptCard value={finalPrompt} usage={cumulativeUsage || usage?.aggregate || usage?.final || usage?.primary} onChange={(v) => setFinalPrompt(v)} />
+          </div>
+        </div>
+      )} right={(
+        <div>
           <PreviewPromptCard value={preview} usage={usage?.preview || usage?.primary} onCopy={onCopyPreview} onInsert={() => setRaw(preview || "")} onChange={(v) => setPreview(v)} />
           <PerfectedPromptCard value={finalPrompt} usage={cumulativeUsage || usage?.aggregate || usage?.final || usage?.primary} onChange={(v) => setFinalPrompt(v)} />
         </div>
-      </div>
-    )} right={(
-      <div>
-        <PreviewPromptCard value={preview} usage={usage?.preview || usage?.primary} onCopy={onCopyPreview} onInsert={() => setRaw(preview || "")} onChange={(v) => setPreview(v)} />
-        <PerfectedPromptCard value={finalPrompt} usage={cumulativeUsage || usage?.aggregate || usage?.final || usage?.primary} onChange={(v) => setFinalPrompt(v)} />
-      </div>
-    )} />
+      )} />
+      {showSupportToast && (
+        <SupportToast
+          onClose={() => setShowSupportToast(false)}
+          milestone={supportMilestone}
+        />
+      )}
+    </>
   );
 }

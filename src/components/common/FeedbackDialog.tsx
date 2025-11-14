@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { postFeedback } from "@/lib/api/feedback"
+import { Coffee } from "lucide-react"
 
 export function FeedbackDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const [message, setMessage] = useState("")
@@ -85,10 +86,21 @@ export function FeedbackDialog({ open, onOpenChange }: { open: boolean; onOpenCh
               If you&apos;d like a response, leave your email.
             </p>
           </div>
-          <DialogFooter>
-            <Button type="submit" disabled={busy || message.length < 10}>
+          <DialogFooter className="flex-col gap-3 sm:flex-col">
+            <Button type="submit" disabled={busy || message.length < 10} className="w-full">
               {busy ? "Sending..." : "Send Feedback"}
             </Button>
+            <div className="border-t pt-3 text-center">
+              <a
+                href="https://buymeacoffee.com/pablomiar"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors underline-offset-4 hover:underline"
+              >
+                <Coffee className="size-3.5 text-amber-600 dark:text-amber-500" />
+                Enjoying Prompt Perfection? Support development →
+              </a>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>
