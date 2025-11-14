@@ -41,7 +41,7 @@ export function SupportToast({ onClose, milestone }: SupportToastProps) {
     return () => {
       if (timer) clearTimeout(timer)
     }
-  }, [isPaused])
+  }, [isPaused, handleNotNow])
 
   const handleSupport = () => {
     window.open(SUPPORT_URL, "_blank", "noopener,noreferrer")
@@ -115,7 +115,7 @@ export function SupportToast({ onClose, milestone }: SupportToastProps) {
                   onClick={handleNeverShow}
                   className="text-xs text-muted-foreground hover:text-foreground transition-colors underline-offset-4 hover:underline"
                 >
-                  Don't show again
+                  Don&apos;t show again
                 </button>
                 <span className="text-xs text-muted-foreground mx-2">•</span>
                 <button
