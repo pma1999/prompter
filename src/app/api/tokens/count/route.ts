@@ -24,8 +24,8 @@ const AssetRefSchema = z.object({
 
 const RefineCountSchema = z.object({
   conversationId: z.string().uuid().optional(),
-  modelId: z.enum(["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-flash-image"]),
-  family: z.enum(["text", "image"]),
+  modelId: z.enum(["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-flash-image", "sora-2-prompt-expert"]),
+  family: z.enum(["text", "image", "video"]),
   rawPrompt: z.string().min(1),
   instructionPresetId: z.string(),
   answers: z.array(z.object({ questionId: z.string(), optionId: z.string() })).optional(),

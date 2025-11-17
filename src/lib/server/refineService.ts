@@ -42,16 +42,18 @@ function serializeQA(questions?: Array<{ id: string; text: string; options: Arra
 }
 
 export function buildDirective(req: RefineRequest, hasImages?: boolean): string {
+  const targetModel = req.family === "image"
+    ? "gemini-2.5-flash-image (image generation)"
+    : req.family === "video"
+    ? "OpenAI Sora 2 (video generation)"
+    : "gemini-2.5-flash (text)";
+  
   const base = [
     "You are refining a user's raw intent into a perfect, ready-to-use prompt.",
-    req.family === "image"
-      ? "Target generation model: gemini-2.5-flash-image (image generation)."
-      : req.family === "video"
-      ? "Target generation model: OpenAI Sora 2 (video generation)."
-      : "Target generation model: gemini-2.5-flash (text).",
+    `Target generation model: ${targetModel}.`,
     ...(hasImages
       ? [
-          "- If reference image(s) are attached to this request, consider them as grounding visual context when drafting the prompt. These same images will also be sent to the gemini-2.5-flash-image generation step.",
+          `- If reference image(s) are attached to this request, consider them as grounding visual context when drafting the prompt. These same images will also be sent to the ${targetModel} generation step.`,
         ]
       : []),
     "Rules:",
@@ -78,16 +80,18 @@ export function buildDirective(req: RefineRequest, hasImages?: boolean): string 
 }
 
 export function buildCachedPrefix(req: RefineRequest, hasImages?: boolean): string {
+  const targetModel = req.family === "image"
+    ? "gemini-2.5-flash-image (image generation)"
+    : req.family === "video"
+    ? "OpenAI Sora 2 (video generation)"
+    : "gemini-2.5-flash (text)";
+  
   const base = [
     "You are refining a user's raw intent into a perfect, ready-to-use prompt.",
-    req.family === "image"
-      ? "Target generation model: gemini-2.5-flash-image (image generation)."
-      : req.family === "video"
-      ? "Target generation model: OpenAI Sora 2 (video generation)."
-      : "Target generation model: gemini-2.5-flash (text).",
+    `Target generation model: ${targetModel}.`,
     ...(hasImages
       ? [
-          "- If reference image(s) are attached to this request, consider them as grounding visual context when drafting the prompt. These same images will also be sent to the gemini-2.5-flash-image generation step.",
+          `- If reference image(s) are attached to this request, consider them as grounding visual context when drafting the prompt. These same images will also be sent to the ${targetModel} generation step.`,
         ]
       : []),
     "Rules:",
@@ -117,16 +121,18 @@ export function buildPrimarySuffix(req: RefineRequest): string {
 }
 
 function buildPreviewDirective(rawPrompt: string, assumed: Array<{ questionId: string; optionId: string }>, family: "text" | "image" | "video", previousPreview?: string, previousQuestions?: RefineRequest["previousQuestions"], hasImages?: boolean): string {
+  const targetModel = family === "image"
+    ? "gemini-2.5-flash-image (image generation)"
+    : family === "video"
+    ? "OpenAI Sora 2 (video generation)"
+    : "gemini-2.5-flash (text)";
+  
   const base = [
     "Synthesize a preview prompt now, assuming the following answers are chosen.",
-    family === "image"
-      ? "Target generation model: gemini-2.5-flash-image (image generation)."
-      : family === "video"
-      ? "Target generation model: OpenAI Sora 2 (video generation)."
-      : "Target generation model: gemini-2.5-flash (text).",
+    `Target generation model: ${targetModel}.`,
     ...(hasImages
       ? [
-          "- If reference image(s) are attached to this request, consider them as grounding visual context when drafting the prompt. These same images will also be sent to the gemini-2.5-flash-image generation step.",
+          `- If reference image(s) are attached to this request, consider them as grounding visual context when drafting the prompt. These same images will also be sent to the ${targetModel} generation step.`,
         ]
       : []),
     "- The previewPrompt must be a single, descriptive paragraph in English.",
@@ -143,16 +149,18 @@ function buildPreviewDirective(rawPrompt: string, assumed: Array<{ questionId: s
 }
 
 function buildPreviewSuffix(rawPrompt: string, assumed: Array<{ questionId: string; optionId: string }>, family: "text" | "image" | "video", previousPreview?: string, previousQuestions?: RefineRequest["previousQuestions"], hasImages?: boolean): string {
+  const targetModel = family === "image"
+    ? "gemini-2.5-flash-image (image generation)"
+    : family === "video"
+    ? "OpenAI Sora 2 (video generation)"
+    : "gemini-2.5-flash (text)";
+  
   const base = [
     "Synthesize a preview prompt now, assuming the following answers are chosen.",
-    family === "image"
-      ? "Target generation model: gemini-2.5-flash-image (image generation)."
-      : family === "video"
-      ? "Target generation model: OpenAI Sora 2 (video generation)."
-      : "Target generation model: gemini-2.5-flash (text).",
+    `Target generation model: ${targetModel}.`,
     ...(hasImages
       ? [
-          "- If reference image(s) are attached to this request, consider them as grounding visual context when drafting the prompt. These same images will also be sent to the gemini-2.5-flash-image generation step.",
+          `- If reference image(s) are attached to this request, consider them as grounding visual context when drafting the prompt. These same images will also be sent to the ${targetModel} generation step.`,
         ]
       : []),
     "- The previewPrompt must be a single, descriptive paragraph in English.",
@@ -166,16 +174,18 @@ function buildPreviewSuffix(rawPrompt: string, assumed: Array<{ questionId: stri
 }
 
 function buildFinalDirective(rawPrompt: string, allAnswers: Array<{ questionId: string; optionId: string }>, family: "text" | "image" | "video", previousPreview?: string, previousQuestions?: RefineRequest["previousQuestions"], hasImages?: boolean): string {
+  const targetModel = family === "image"
+    ? "gemini-2.5-flash-image (image generation)"
+    : family === "video"
+    ? "OpenAI Sora 2 (video generation)"
+    : "gemini-2.5-flash (text)";
+  
   const base = [
     "Synthesize the perfected prompt now, considering the user's intent and the following answers.",
-    family === "image"
-      ? "Target generation model: gemini-2.5-flash-image (image generation)."
-      : family === "video"
-      ? "Target generation model: OpenAI Sora 2 (video generation)."
-      : "Target generation model: gemini-2.5-flash (text).",
+    `Target generation model: ${targetModel}.`,
     ...(hasImages
       ? [
-          "- If reference image(s) are attached to this request, consider them as grounding visual context when drafting the prompt. These same images will also be sent to the gemini-2.5-flash-image generation step.",
+          `- If reference image(s) are attached to this request, consider them as grounding visual context when drafting the prompt. These same images will also be sent to the ${targetModel} generation step.`,
         ]
       : []),
     "- The perfectedPrompt must be a single, descriptive paragraph in English.",
@@ -192,16 +202,18 @@ function buildFinalDirective(rawPrompt: string, allAnswers: Array<{ questionId: 
 }
 
 function buildFinalSuffix(rawPrompt: string, allAnswers: Array<{ questionId: string; optionId: string }>, family: "text" | "image" | "video", previousPreview?: string, previousQuestions?: RefineRequest["previousQuestions"], hasImages?: boolean): string {
+  const targetModel = family === "image"
+    ? "gemini-2.5-flash-image (image generation)"
+    : family === "video"
+    ? "OpenAI Sora 2 (video generation)"
+    : "gemini-2.5-flash (text)";
+  
   const base = [
     "Synthesize the perfected prompt now, considering the user's intent and the following answers.",
-    family === "image"
-      ? "Target generation model: gemini-2.5-flash-image (image generation)."
-      : family === "video"
-      ? "Target generation model: OpenAI Sora 2 (video generation)."
-      : "Target generation model: gemini-2.5-flash (text).",
+    `Target generation model: ${targetModel}.`,
     ...(hasImages
       ? [
-          "- If reference image(s) are attached to this request, consider them as grounding visual context when drafting the prompt. These same images will also be sent to the gemini-2.5-flash-image generation step.",
+          `- If reference image(s) are attached to this request, consider them as grounding visual context when drafting the prompt. These same images will also be sent to the ${targetModel} generation step.`,
         ]
       : []),
     "- The perfectedPrompt must be a single, descriptive paragraph in English.",
