@@ -117,6 +117,7 @@ export function SupportToast({ onClose, milestone }: SupportToastProps) {
                   className="text-xs text-muted-foreground hover:text-foreground transition-colors underline-offset-4 hover:underline"
                 >
                   Don&apos;t show again
+                  Don&apos;t show again
                 </button>
                 <span className="text-xs text-muted-foreground mx-2">•</span>
                 <button
