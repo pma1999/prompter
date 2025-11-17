@@ -22,8 +22,17 @@ export const MODELS: ModelInfo[] = [
     description: "Natively multimodal image generation, editing, and composition.",
     capabilities: ["image", "text-to-image", "image-edit", "composition"],
   },
+  {
+    id: "sora-2-prompt-expert",
+    family: "video",
+    label: "Sora 2 Video Prompt Expert",
+    description: "Expert prompt refinement for OpenAI Sora 2 video generation.",
+    capabilities: ["video", "text-to-video", "image-to-video"],
+  },
 ];
 
 export function getDefaultModelId(family: ModelFamily): ModelId {
-  return family === "image" ? "gemini-2.5-flash-image" : "gemini-2.5-pro";
+  if (family === "image") return "gemini-2.5-flash-image";
+  if (family === "video") return "sora-2-prompt-expert";
+  return "gemini-2.5-pro";
 }

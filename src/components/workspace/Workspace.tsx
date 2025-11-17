@@ -27,7 +27,7 @@ import { trackSuccessAndCheckShow, getTrackingStats } from "@/lib/supportTrackin
 export function Workspace() {
   const [modelId, setModelId] = useState<ModelId>(getDefaultModelId("image"));
   const family = useMemo(() => MODELS.find((m) => m.id === modelId)!.family, [modelId]);
-  const presetId = family === "image" ? "image-virtuoso" : "llm-refiner";
+  const presetId = family === "image" ? "image-virtuoso" : family === "video" ? "sora-2-virtuoso" : "llm-refiner";
   const [raw, setRaw] = useState("");
 
   const [preview, setPreview] = useState<string | undefined>(undefined);
@@ -211,8 +211,8 @@ export function Workspace() {
         return;
       }
     }
-    if (family !== "image") {
-      toast.error("This version currently supports Image prompt refinement only.");
+    if (family !== "image" && family !== "video") {
+      toast.error("This version currently supports Image and Video prompt refinement only.");
       return;
     }
     setBusy(true);
@@ -369,7 +369,21 @@ export function Workspace() {
           {family === "image" && (
             <ImageReferenceUploader assets={imageAssets} onChangeAssets={setImageAssets} />
           )}
-          <RawPromptInput value={raw} onChange={setRaw} onSubmit={onRefine} placeholder={family === "image" ? "Describe your vision… (Purpose, subject, lighting, camera, mood)" : "Describe your goal… (Audience, constraints, desired format)"} />
+          {family === "video" && (
+            <ImageReferenceUploader assets={imageAssets} onChangeAssets={setImageAssets} />
+          )}
+          <RawPromptInput
+            value={raw}
+            onChange={setRaw}
+            onSubmit={onRefine}
+            placeholder={
+              family === "image"
+                ? "Describe your vision… (Purpose, subject, lighting, camera, mood)"
+                : family === "video"
+                ? "Describe your scene… (Style, shot, action, lighting, dialogue)"
+                : "Describe your goal… (Audience, constraints, desired format)"
+            }
+          />
           {!hasApiKey && (
             <div className="text-sm text-amber-600 dark:text-amber-500">Connect your Gemini API key using the button in the top right to enable refinement.</div>
           )}

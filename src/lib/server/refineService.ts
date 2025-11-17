@@ -15,10 +15,14 @@ import {
   deleteCache,
 } from "@/lib/server/cacheService";
 
-export function getPersonaForFamily(family: "text" | "image"): string {
+export function getPersonaForFamily(family: "text" | "image" | "video"): string {
   if (family === "image") {
     const p = INSTRUCTION_PRESETS.find((x) => x.id === "image-virtuoso");
     return p?.persona ?? "You are an Image Prompt Virtuoso.";
+  }
+  if (family === "video") {
+    const p = INSTRUCTION_PRESETS.find((x) => x.id === "sora-2-virtuoso");
+    return p?.persona ?? "You are a Sora 2 Prompt Expert.";
   }
   const p = INSTRUCTION_PRESETS.find((x) => x.id === "llm-refiner");
   return p?.persona ?? "You are a meticulous prompt engineer.";
@@ -42,6 +46,8 @@ export function buildDirective(req: RefineRequest, hasImages?: boolean): string 
     "You are refining a user's raw intent into a perfect, ready-to-use prompt.",
     req.family === "image"
       ? "Target generation model: gemini-2.5-flash-image (image generation)."
+      : req.family === "video"
+      ? "Target generation model: OpenAI Sora 2 (video generation)."
       : "Target generation model: gemini-2.5-flash (text).",
     ...(hasImages
       ? [
@@ -76,6 +82,8 @@ export function buildCachedPrefix(req: RefineRequest, hasImages?: boolean): stri
     "You are refining a user's raw intent into a perfect, ready-to-use prompt.",
     req.family === "image"
       ? "Target generation model: gemini-2.5-flash-image (image generation)."
+      : req.family === "video"
+      ? "Target generation model: OpenAI Sora 2 (video generation)."
       : "Target generation model: gemini-2.5-flash (text).",
     ...(hasImages
       ? [
@@ -108,11 +116,13 @@ export function buildPrimarySuffix(req: RefineRequest): string {
   return suffix;
 }
 
-function buildPreviewDirective(rawPrompt: string, assumed: Array<{ questionId: string; optionId: string }>, family: "text" | "image", previousPreview?: string, previousQuestions?: RefineRequest["previousQuestions"], hasImages?: boolean): string {
+function buildPreviewDirective(rawPrompt: string, assumed: Array<{ questionId: string; optionId: string }>, family: "text" | "image" | "video", previousPreview?: string, previousQuestions?: RefineRequest["previousQuestions"], hasImages?: boolean): string {
   const base = [
     "Synthesize a preview prompt now, assuming the following answers are chosen.",
     family === "image"
       ? "Target generation model: gemini-2.5-flash-image (image generation)."
+      : family === "video"
+      ? "Target generation model: OpenAI Sora 2 (video generation)."
       : "Target generation model: gemini-2.5-flash (text).",
     ...(hasImages
       ? [
@@ -132,11 +142,13 @@ function buildPreviewDirective(rawPrompt: string, assumed: Array<{ questionId: s
   return directive;
 }
 
-function buildPreviewSuffix(rawPrompt: string, assumed: Array<{ questionId: string; optionId: string }>, family: "text" | "image", previousPreview?: string, previousQuestions?: RefineRequest["previousQuestions"], hasImages?: boolean): string {
+function buildPreviewSuffix(rawPrompt: string, assumed: Array<{ questionId: string; optionId: string }>, family: "text" | "image" | "video", previousPreview?: string, previousQuestions?: RefineRequest["previousQuestions"], hasImages?: boolean): string {
   const base = [
     "Synthesize a preview prompt now, assuming the following answers are chosen.",
     family === "image"
       ? "Target generation model: gemini-2.5-flash-image (image generation)."
+      : family === "video"
+      ? "Target generation model: OpenAI Sora 2 (video generation)."
       : "Target generation model: gemini-2.5-flash (text).",
     ...(hasImages
       ? [
@@ -153,11 +165,13 @@ function buildPreviewSuffix(rawPrompt: string, assumed: Array<{ questionId: stri
   return suffix;
 }
 
-function buildFinalDirective(rawPrompt: string, allAnswers: Array<{ questionId: string; optionId: string }>, family: "text" | "image", previousPreview?: string, previousQuestions?: RefineRequest["previousQuestions"], hasImages?: boolean): string {
+function buildFinalDirective(rawPrompt: string, allAnswers: Array<{ questionId: string; optionId: string }>, family: "text" | "image" | "video", previousPreview?: string, previousQuestions?: RefineRequest["previousQuestions"], hasImages?: boolean): string {
   const base = [
     "Synthesize the perfected prompt now, considering the user's intent and the following answers.",
     family === "image"
       ? "Target generation model: gemini-2.5-flash-image (image generation)."
+      : family === "video"
+      ? "Target generation model: OpenAI Sora 2 (video generation)."
       : "Target generation model: gemini-2.5-flash (text).",
     ...(hasImages
       ? [
@@ -177,11 +191,13 @@ function buildFinalDirective(rawPrompt: string, allAnswers: Array<{ questionId: 
   return directive;
 }
 
-function buildFinalSuffix(rawPrompt: string, allAnswers: Array<{ questionId: string; optionId: string }>, family: "text" | "image", previousPreview?: string, previousQuestions?: RefineRequest["previousQuestions"], hasImages?: boolean): string {
+function buildFinalSuffix(rawPrompt: string, allAnswers: Array<{ questionId: string; optionId: string }>, family: "text" | "image" | "video", previousPreview?: string, previousQuestions?: RefineRequest["previousQuestions"], hasImages?: boolean): string {
   const base = [
     "Synthesize the perfected prompt now, considering the user's intent and the following answers.",
     family === "image"
       ? "Target generation model: gemini-2.5-flash-image (image generation)."
+      : family === "video"
+      ? "Target generation model: OpenAI Sora 2 (video generation)."
       : "Target generation model: gemini-2.5-flash (text).",
     ...(hasImages
       ? [
@@ -277,8 +293,8 @@ function aggregateUsage(usages: Array<UsageMetadata | undefined>): UsageMetadata
 }
 
 export async function refine(ai: GoogleGenAI, req: RefineRequest): Promise<RefineResponse> {
-  if (req.family !== "image") {
-    throw new Error("IMAGE_ONLY_FOR_NOW");
+  if (req.family !== "image" && req.family !== "video") {
+    throw new Error("UNSUPPORTED_FAMILY");
   }
   const persona = getPersonaForFamily(req.family);
   const hasImages = (req.context?.image?.assets?.length || 0) > 0;

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Coffee, X } from "lucide-react"
 import { dismissSupport, snoozeSupport, neverShowAgain, shouldOfferNeverShowAgain, recordToastShown } from "@/lib/supportTracking"
@@ -15,6 +15,11 @@ interface SupportToastProps {
 export function SupportToast({ onClose, milestone }: SupportToastProps) {
   const [isPaused, setIsPaused] = useState(false)
   const [showNeverOption, setShowNeverOption] = useState(false)
+
+  const handleNotNow = useCallback(() => {
+    dismissSupport()
+    onClose()
+  }, [onClose])
 
   useEffect(() => {
     // Record that toast was shown
@@ -41,17 +46,13 @@ export function SupportToast({ onClose, milestone }: SupportToastProps) {
     return () => {
       if (timer) clearTimeout(timer)
     }
-  }, [isPaused])
+  }, [isPaused, handleNotNow])
 
   const handleSupport = () => {
     window.open(SUPPORT_URL, "_blank", "noopener,noreferrer")
     onClose()
   }
 
-  const handleNotNow = () => {
-    dismissSupport()
-    onClose()
-  }
 
   const handleSnooze = () => {
     snoozeSupport()
@@ -115,7 +116,7 @@ export function SupportToast({ onClose, milestone }: SupportToastProps) {
                   onClick={handleNeverShow}
                   className="text-xs text-muted-foreground hover:text-foreground transition-colors underline-offset-4 hover:underline"
                 >
-                  Don't show again
+                  Don&apos;t show again
                 </button>
                 <span className="text-xs text-muted-foreground mx-2">•</span>
                 <button

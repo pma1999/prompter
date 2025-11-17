@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Info, ChevronDown, ChevronUp } from "lucide-react";
 
-export function GuidePanel({ family }: { family: "text" | "image" }) {
+export function GuidePanel({ family }: { family: "text" | "image" | "video" }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="rounded-md border bg-muted/40 px-3 py-2">
@@ -14,7 +14,9 @@ export function GuidePanel({ family }: { family: "text" | "image" }) {
         aria-expanded={open}
       >
         <Info className="size-4" />
-        <span className="font-medium">{family === "image" ? "Image prompt tips" : "Text prompt tips"}</span>
+        <span className="font-medium">
+          {family === "image" ? "Image prompt tips" : family === "video" ? "Video prompt tips" : "Text prompt tips"}
+        </span>
         <span className="ml-auto inline-flex items-center gap-1">
           <span className="hidden sm:inline">{open ? "Hide" : "Show"}</span>
           {open ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
@@ -33,6 +35,19 @@ export function GuidePanel({ family }: { family: "text" | "image" }) {
                 <li>Editing: describe only the change; keep style and lighting.</li>
                 <li>Composition: reference which elements to combine and where.</li>
                 <li>Need a specific ratio? Provide a reference image.</li>
+              </ul>
+            </div>
+          ) : family === "video" ? (
+            <div className="grid gap-2 sm:grid-cols-2">
+              <ul className="list-disc pl-4 space-y-1">
+                <li>Describe as if briefing a cinematographer: shot, action, lighting.</li>
+                <li>Keep motion simple: one camera move, one clear subject action.</li>
+                <li>Specify style early (e.g., &ldquo;1970s film&rdquo;, &ldquo;IMAX-scale&rdquo;, &ldquo;handheld&rdquo;).</li>
+              </ul>
+              <ul className="list-disc pl-4 space-y-1">
+                <li>For dialogue: keep lines short, label speakers clearly.</li>
+                <li>Use reference images to lock composition and style.</li>
+                <li>Shorter clips (4s) follow instructions more reliably than longer ones.</li>
               </ul>
             </div>
           ) : (

@@ -1,10 +1,11 @@
-export type ModelFamily = "text" | "image";
+export type ModelFamily = "text" | "image" | "video";
 
 export type ModelId =
   | "gemini-2.5-pro"
   | "gemini-2.5-flash"
   | "gemini-2.5-flash-lite"
-  | "gemini-2.5-flash-image";
+  | "gemini-2.5-flash-image"
+  | "sora-2-prompt-expert";
 
 export interface ModelInfo {
   id: ModelId;
