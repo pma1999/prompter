@@ -8,7 +8,7 @@ import { ApiKeyManager } from "@/components/common/ApiKeyManager";
 import { FeedbackButton } from "@/components/common/FeedbackButton";
 import { FeedbackDialog } from "@/components/common/FeedbackDialog";
 import { subscribeCommands, emitCommand } from "@/lib/commandBus";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { GrainOverlay } from "@/components/ui/GrainOverlay";
 import {
   DropdownMenu,
@@ -21,13 +21,13 @@ import { Button } from "@/components/ui/button";
 import { MoreVertical, Plus, Download, Upload, Key, MessageSquare, BookOpen, Keyboard } from "lucide-react";
 
 export function AppShell({ left, center, right }: { left: ReactNode; center: ReactNode; right: ReactNode }) {
-  const apiKeyButtonRef = useRef<HTMLButtonElement | null>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [apiKeyOpen, setApiKeyOpen] = useState(false);
 
   useEffect(() => {
     return subscribeCommands((cmd) => {
       if (cmd === "connect-api-key") {
-        apiKeyButtonRef.current?.click();
+        setApiKeyOpen(true);
       }
       if (cmd === "open-feedback") {
         setFeedbackOpen(true);
@@ -121,7 +121,7 @@ export function AppShell({ left, center, right }: { left: ReactNode; center: Rea
                         Export Session
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => emitCommand('connect-api-key')} className="gap-2">
+                      <DropdownMenuItem onClick={() => setApiKeyOpen(true)} className="gap-2">
                         <Key className="size-4" />
                         API Key
                       </DropdownMenuItem>
@@ -163,7 +163,10 @@ export function AppShell({ left, center, right }: { left: ReactNode; center: Rea
           </SidebarInset>
         </div>
       </SidebarProvider>
+
+      {/* Dialogs - rendered at root level for proper stacking */}
       <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
+      <ApiKeyManager open={apiKeyOpen} onOpenChange={setApiKeyOpen} hideButton />
     </>
   );
 }

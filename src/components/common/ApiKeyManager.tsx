@@ -16,17 +16,39 @@ import { getAuthStatus, connectApiKey, disconnectApiKey } from "@/lib/api/auth";
 import { emitCommand } from "@/lib/commandBus";
 import { Key, Check, X } from "lucide-react";
 
+interface ApiKeyManagerProps {
+  onStatusChange?: (connected: boolean) => void;
+  /** External control for dialog open state */
+  open?: boolean;
+  /** External control for dialog open state changes */
+  onOpenChange?: (open: boolean) => void;
+  /** Hide the trigger button (useful when controlled externally) */
+  hideButton?: boolean;
+}
+
 export function ApiKeyManager({
   onStatusChange,
-}: {
-  onStatusChange?: (connected: boolean) => void;
-}) {
-  const [open, setOpen] = useState(false);
+  open: controlledOpen,
+  onOpenChange,
+  hideButton = false,
+}: ApiKeyManagerProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [connected, setConnected] = useState(false);
   const [expiresAt, setExpiresAt] = useState<number | undefined>(undefined);
   const [apiKey, setApiKey] = useState("");
   const [remember, setRemember] = useState(true);
   const [busy, setBusy] = useState(false);
+
+  // Support both controlled and uncontrolled modes
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = (value: boolean) => {
+    if (isControlled) {
+      onOpenChange?.(value);
+    } else {
+      setInternalOpen(value);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -97,21 +119,23 @@ export function ApiKeyManager({
 
   return (
     <>
-      <Button
-        variant={connected ? "default" : "outline"}
-        size="sm"
-        onClick={onOpen}
-        className="gap-1.5 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 text-[10px] sm:text-xs touch-target-sm"
-      >
-        {connected ? (
-          <Check className="size-3 sm:size-3.5" />
-        ) : (
-          <Key className="size-3 sm:size-3.5" />
-        )}
-        {/* Full label on md+, short on smaller */}
-        <span className="hidden md:inline">{label}</span>
-        <span className="md:hidden">{shortLabel}</span>
-      </Button>
+      {!hideButton && (
+        <Button
+          variant={connected ? "default" : "outline"}
+          size="sm"
+          onClick={onOpen}
+          className="gap-1.5 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 text-[10px] sm:text-xs touch-target-sm"
+        >
+          {connected ? (
+            <Check className="size-3 sm:size-3.5" />
+          ) : (
+            <Key className="size-3 sm:size-3.5" />
+          )}
+          {/* Full label on md+, short on smaller */}
+          <span className="hidden md:inline">{label}</span>
+          <span className="md:hidden">{shortLabel}</span>
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-md">
