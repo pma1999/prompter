@@ -8,7 +8,7 @@ import { ApiKeyManager } from "@/components/common/ApiKeyManager";
 import { FeedbackButton } from "@/components/common/FeedbackButton";
 import { FeedbackDialog } from "@/components/common/FeedbackDialog";
 import { subscribeCommands, emitCommand } from "@/lib/commandBus";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { GrainOverlay } from "@/components/ui/GrainOverlay";
 import {
   DropdownMenu,
@@ -21,14 +21,10 @@ import { Button } from "@/components/ui/button";
 import { MoreVertical, Plus, Download, Upload, Key, MessageSquare, BookOpen, Keyboard } from "lucide-react";
 
 export function AppShell({ left, center, right }: { left: ReactNode; center: ReactNode; right: ReactNode }) {
-  const apiKeyButtonRef = useRef<HTMLButtonElement | null>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   useEffect(() => {
     return subscribeCommands((cmd) => {
-      if (cmd === "connect-api-key") {
-        apiKeyButtonRef.current?.click();
-      }
       if (cmd === "open-feedback") {
         setFeedbackOpen(true);
       }
@@ -164,6 +160,10 @@ export function AppShell({ left, center, right }: { left: ReactNode; center: Rea
         </div>
       </SidebarProvider>
       <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
+      {/* ApiKeyManager for mobile - hidden button but always mounted to handle commands */}
+      <div className="md:hidden">
+        <ApiKeyManager showButton={false} />
+      </div>
     </>
   );
 }
