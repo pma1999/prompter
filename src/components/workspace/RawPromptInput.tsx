@@ -3,7 +3,12 @@
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useRef } from "react";
 
-export function RawPromptInput({ value, onChange, placeholder, onSubmit }: {
+export function RawPromptInput({
+  value,
+  onChange,
+  placeholder,
+  onSubmit,
+}: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
@@ -15,15 +20,18 @@ export function RawPromptInput({ value, onChange, placeholder, onSubmit }: {
     const el = ref.current;
     if (!el) return;
     el.style.height = "auto";
-    const newHeight = Math.max(160, el.scrollHeight);
+    // Responsive min-height: smaller on mobile
+    const minHeight = window.innerWidth < 640 ? 120 : 160;
+    const newHeight = Math.max(minHeight, el.scrollHeight);
     el.style.height = `${newHeight}px`;
   }, [value]);
 
   return (
     <div className="relative group">
+      {/* Glow effect on focus */}
       <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 via-primary/0 to-primary/20 opacity-0 group-focus-within:opacity-100 transition-opacity duration-500 rounded-lg blur-sm" />
 
-      <div className="relative glass-panel rounded-lg p-1 overflow-hidden transition-all duration-300 group-focus-within:ring-1 group-focus-within:ring-primary/50">
+      <div className="relative glass-panel rounded-lg p-0.5 sm:p-1 overflow-hidden transition-all duration-300 group-focus-within:ring-1 group-focus-within:ring-primary/50">
         <Textarea
           ref={ref}
           value={value}
@@ -35,12 +43,20 @@ export function RawPromptInput({ value, onChange, placeholder, onSubmit }: {
             }
           }}
           placeholder={placeholder}
-          className="w-full bg-transparent border-0 focus-visible:ring-0 resize-none min-h-[160px] p-6 text-lg font-mono leading-relaxed placeholder:text-muted-foreground/50 selection:bg-primary/20"
+          className="w-full bg-transparent border-0 focus-visible:ring-0 resize-none min-h-[120px] sm:min-h-[140px] md:min-h-[160px] p-3 sm:p-4 md:p-6 text-sm sm:text-base md:text-lg font-mono leading-relaxed placeholder:text-muted-foreground/50 selection:bg-primary/20 scroll-smooth-touch"
           spellCheck={false}
         />
 
-        <div className="absolute bottom-3 right-4 flex items-center gap-2 pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity duration-300">
-          <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-mono uppercase tracking-wider">Ctrl + Enter</span>
+        {/* Keyboard shortcut hint - responsive */}
+        <div className="absolute bottom-2 sm:bottom-3 right-2 sm:right-4 flex items-center gap-2 pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity duration-300">
+          {/* Desktop: Full shortcut */}
+          <span className="hidden sm:inline text-[9px] sm:text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-mono uppercase tracking-wider">
+            Ctrl + Enter
+          </span>
+          {/* Mobile: Abbreviated or icon */}
+          <span className="sm:hidden text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-mono uppercase tracking-wider">
+            ⌘↵
+          </span>
         </div>
       </div>
     </div>
