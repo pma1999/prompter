@@ -219,10 +219,6 @@ export function Workspace() {
         return;
       }
     }
-    if (family !== "image" && family !== "video") {
-      toast.error("This version currently supports Image and Video prompt refinement only.");
-      return;
-    }
     setBusy(true);
     try {
       const resp = await postRefine({
