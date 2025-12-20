@@ -39,7 +39,7 @@ export function ClarificationPanel({
           <div key={q.id} className="relative group">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-lg blur-sm" />
             <Card className="glass-panel border-l-2 border-l-primary/50 relative">
-              <CardHeader className="pb-3 bg-white/5 border-b border-white/5">
+              <CardHeader className="pb-2 bg-muted/5 border-b border-border/10 dark:bg-white/5 dark:border-white/5">
                 <div className="flex items-start gap-3">
                   <div className="font-mono text-xs text-primary/70 mt-0.5">0{idx + 1}</div>
                   <div className="space-y-1">
@@ -48,7 +48,7 @@ export function ClarificationPanel({
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="pt-4">
+              <CardContent className="pt-3">
                 <RadioGroup value={radioValue} onValueChange={(v) => {
                   if (v === CUSTOM_OPTION_ID) {
                     if (!isKnown && current && current !== CUSTOM_OPTION_ID) {
