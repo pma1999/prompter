@@ -3,6 +3,7 @@
 import { useId, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { Plus, X, ImagePlus, Trash2 } from "lucide-react";
 import { AssetRef } from "@/domain/types";
 
 interface ImageReferenceUploaderProps {
@@ -20,7 +21,6 @@ const ACCEPTED_MIME = new Set([
 
 function estimateBase64Bytes(dataUri: string): number {
   const base64 = dataUri.split(",")[1] || "";
-  // Base64 decoding: 4 chars -> 3 bytes
   return Math.floor((base64.length * 3) / 4);
 }
 
@@ -33,8 +33,11 @@ async function fileToDataUri(file: File): Promise<string> {
   });
 }
 
-async function compressImageToJpegDataUri(file: File, maxDim = 1600, quality = 0.82): Promise<string> {
-  // Decode using createImageBitmap when possible; fallback to Image
+async function compressImageToJpegDataUri(
+  file: File,
+  maxDim = 1600,
+  quality = 0.82
+): Promise<string> {
   try {
     const bmp = await createImageBitmap(file).catch(() => undefined);
     if (bmp) {
@@ -42,15 +45,18 @@ async function compressImageToJpegDataUri(file: File, maxDim = 1600, quality = 0
       const w = Math.max(1, Math.round(bmp.width * scale));
       const h = Math.max(1, Math.round(bmp.height * scale));
       const canvas = document.createElement("canvas");
-      canvas.width = w; canvas.height = h;
+      canvas.width = w;
+      canvas.height = h;
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Canvas unsupported");
       ctx.drawImage(bmp, 0, 0, w, h);
       const out = canvas.toDataURL("image/jpeg", quality);
-      try { bmp.close(); } catch { }
+      try {
+        bmp.close();
+      } catch {}
       return out;
     }
-  } catch { }
+  } catch {}
 
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
@@ -61,7 +67,8 @@ async function compressImageToJpegDataUri(file: File, maxDim = 1600, quality = 0
         const w = Math.max(1, Math.round(img.width * scale));
         const h = Math.max(1, Math.round(img.height * scale));
         const canvas = document.createElement("canvas");
-        canvas.width = w; canvas.height = h;
+        canvas.width = w;
+        canvas.height = h;
         const ctx = canvas.getContext("2d");
         if (!ctx) throw new Error("Canvas unsupported");
         ctx.drawImage(img, 0, 0, w, h);
@@ -73,12 +80,18 @@ async function compressImageToJpegDataUri(file: File, maxDim = 1600, quality = 0
         reject(e);
       }
     };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Failed to decode image")); };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Failed to decode image"));
+    };
     img.src = url;
   });
 }
 
-export function ImageReferenceUploader({ assets, onChangeAssets }: ImageReferenceUploaderProps) {
+export function ImageReferenceUploader({
+  assets,
+  onChangeAssets,
+}: ImageReferenceUploaderProps) {
   const inputId = useId();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -101,9 +114,10 @@ export function ImageReferenceUploader({ assets, onChangeAssets }: ImageReferenc
       try {
         let dataUri: string | undefined;
         if (file.type === "image/heic" || file.type === "image/heif") {
-          // Keep as-is (can't reliably transcode client-side in all browsers)
           if (file.size > 6 * 1024 * 1024) {
-            toast.error("HEIC/HEIF image too large; please convert to JPEG/PNG or choose a smaller file.");
+            toast.error(
+              "HEIC/HEIF image too large; please convert to JPEG/PNG or choose a smaller file."
+            );
             continue;
           }
           dataUri = await fileToDataUri(file);
@@ -114,7 +128,10 @@ export function ImageReferenceUploader({ assets, onChangeAssets }: ImageReferenc
         newAssets.push({
           id: crypto.randomUUID(),
           name: file.name,
-          mimeType: file.type === "image/heic" || file.type === "image/heif" ? file.type : "image/jpeg",
+          mimeType:
+            file.type === "image/heic" || file.type === "image/heif"
+              ? file.type
+              : "image/jpeg",
           sizeBytes: estBytes,
           source: "uploaded",
           dataUri,
@@ -126,10 +143,8 @@ export function ImageReferenceUploader({ assets, onChangeAssets }: ImageReferenc
 
     const combined = [...assets, ...newAssets];
     const totalBytes = combined.reduce((s, a) => s + (a.sizeBytes || 0), 0);
-    // Keep total inline payload under ~4MB to avoid API body limits
     const MAX_INLINE_BYTES = 4 * 1024 * 1024;
     if (totalBytes > MAX_INLINE_BYTES) {
-      // Trim oldest until under cap
       const trimmed: AssetRef[] = [];
       let acc = 0;
       for (const a of combined) {
@@ -159,7 +174,7 @@ export function ImageReferenceUploader({ assets, onChangeAssets }: ImageReferenc
   }
 
   return (
-    <div className="glass-panel border-l-2 border-l-primary/30 p-1 relative overflow-hidden transition-all duration-300">
+    <div className="glass-panel border-l-2 border-l-primary/30 p-0.5 sm:p-1 relative overflow-hidden transition-all duration-300 rounded-lg">
       <input
         ref={fileInputRef}
         id={inputId}
@@ -177,40 +192,67 @@ export function ImageReferenceUploader({ assets, onChangeAssets }: ImageReferenc
       {assets.length === 0 ? (
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="w-full flex items-center justify-center gap-3 py-4 hover:bg-white/5 transition-colors group"
+          className="w-full flex items-center justify-center gap-2 sm:gap-3 py-3 sm:py-4 hover:bg-white/5 active:bg-white/10 transition-colors group touch-target rounded-lg"
         >
-          <div className="size-8 rounded-full border border-dashed border-white/20 flex items-center justify-center text-muted-foreground group-hover:text-primary group-hover:border-primary bg-black/20">
-            <span className="text-lg">+</span>
+          <div className="size-8 sm:size-10 rounded-full border border-dashed border-white/20 flex items-center justify-center text-muted-foreground group-hover:text-primary group-hover:border-primary bg-black/20 transition-colors">
+            <ImagePlus className="size-4 sm:size-5" />
           </div>
           <div className="text-left">
-            <div className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">Add Reference Images</div>
-            <div className="text-[10px] text-muted-foreground">Up to 4 images to guide structure (max 4MB total)</div>
+            <div className="text-xs sm:text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+              Add Reference Images
+            </div>
+            <div className="text-[9px] sm:text-[10px] text-muted-foreground">
+              Up to 4 images (max 4MB)
+            </div>
           </div>
         </button>
       ) : (
-        <div className="p-3 bg-black/20">
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">References ({assets.length})</div>
-            <div className="flex gap-2">
-              <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="h-6 text-[10px] hover:text-primary">ADD MORE</Button>
-              <Button variant="ghost" size="sm" onClick={handleClear} className="h-6 text-[10px] hover:text-destructive">CLEAR ALL</Button>
+        <div className="p-2 sm:p-3 bg-black/20">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-2 sm:mb-3 gap-2">
+            <div className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Refs ({assets.length}/4)
+            </div>
+            <div className="flex gap-1 sm:gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                className="h-6 sm:h-7 px-2 text-[9px] sm:text-[10px] hover:text-primary gap-1"
+              >
+                <Plus className="size-3" />
+                <span className="hidden xs:inline">ADD</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClear}
+                className="h-6 sm:h-7 px-2 text-[9px] sm:text-[10px] hover:text-destructive gap-1"
+              >
+                <Trash2 className="size-3" />
+                <span className="hidden xs:inline">CLEAR</span>
+              </Button>
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-2">
+          {/* Grid - responsive columns */}
+          <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-2">
             {assets.map((a) => (
-              <div key={a.id || a.name} className="relative group aspect-square border border-white/10 rounded overflow-hidden bg-black">
+              <div
+                key={a.id || a.name}
+                className="relative group/img aspect-square border border-white/10 rounded overflow-hidden bg-black"
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   alt={a.name}
                   src={a.dataUri || a.url}
-                  className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity"
+                  className="w-full h-full object-cover opacity-60 group-hover/img:opacity-100 transition-opacity"
                 />
                 <button
-                  className="absolute top-1 right-1 size-5 bg-black/80 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity border border-white/20 hover:border-red-500 hover:text-red-500"
+                  className="absolute top-1 right-1 size-6 sm:size-5 bg-black/80 text-white rounded-full flex items-center justify-center opacity-100 sm:opacity-0 group-hover/img:opacity-100 transition-opacity border border-white/20 hover:border-red-500 hover:text-red-500 touch-target-sm"
                   onClick={() => handleRemove(a.id)}
                 >
-                  ×
+                  <X className="size-3" />
                 </button>
               </div>
             ))}
@@ -220,5 +262,3 @@ export function ImageReferenceUploader({ assets, onChangeAssets }: ImageReferenc
     </div>
   );
 }
-
-

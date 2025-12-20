@@ -371,83 +371,126 @@ export function Workspace() {
 
   return (
     <>
-      <AppShell left={<LeftSidebar onSelect={onSelectSession} />} center={(
-        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <ModelSwitch value={modelId} onChange={handleModelChange} />
+      <AppShell
+        left={<LeftSidebar onSelect={onSelectSession} />}
+        center={
+          <div className="space-y-6 sm:space-y-8 md:space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {/* Model Selection */}
+            <ModelSwitch value={modelId} onChange={handleModelChange} />
 
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 text-muted-foreground uppercase text-xs font-mono tracking-widest pl-1">
-              <span className="text-primary">02</span>
-              Context & Input
+            {/* Context & Input Section */}
+            <div className="space-y-4 sm:space-y-6">
+              <div className="flex items-center gap-2 text-muted-foreground uppercase text-[10px] sm:text-xs font-mono tracking-widest pl-1">
+                <span className="text-primary">02</span>
+                <span className="hidden xs:inline">Context & Input</span>
+                <span className="xs:hidden">Input</span>
+              </div>
+
+              <GuidePanel family={family} />
+              {family === "image" && <ImageTemplatePicker onInsert={handleInsertTemplate} />}
+              {(family === "image" || family === "video") && (
+                <ImageReferenceUploader assets={imageAssets} onChangeAssets={setImageAssets} />
+              )}
             </div>
 
-            <GuidePanel family={family} />
-            {family === "image" && <ImageTemplatePicker onInsert={handleInsertTemplate} />}
-            {family === "image" && (
-              <ImageReferenceUploader assets={imageAssets} onChangeAssets={setImageAssets} />
-            )}
-            {family === "video" && (
-              <ImageReferenceUploader assets={imageAssets} onChangeAssets={setImageAssets} />
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-muted-foreground uppercase text-xs font-mono tracking-widest pl-1">
-              <span className="text-primary">03</span>
-              Raw Prompt
-            </div>
-            <RawPromptInput
-              value={raw}
-              onChange={setRaw}
-              onSubmit={onRefine}
-              placeholder={
-                family === "image"
-                  ? "Describe your vision… (Purpose, subject, lighting, camera, mood)"
-                  : family === "video"
+            {/* Raw Prompt Section */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-muted-foreground uppercase text-[10px] sm:text-xs font-mono tracking-widest pl-1">
+                <span className="text-primary">03</span>
+                <span className="hidden xs:inline">Raw Prompt</span>
+                <span className="xs:hidden">Prompt</span>
+              </div>
+              <RawPromptInput
+                value={raw}
+                onChange={setRaw}
+                onSubmit={onRefine}
+                placeholder={
+                  family === "image"
+                    ? "Describe your vision… (Purpose, subject, lighting, camera, mood)"
+                    : family === "video"
                     ? "Describe your scene… (Style, shot, action, lighting, dialogue)"
                     : "Describe your goal… (Audience, constraints, desired format)"
-              }
-            />
-            {family === "text" && (
-              <div className="flex items-center space-x-2 pt-2">
-                <Switch id="params-mode" checked={includeParams} onCheckedChange={setIncludeParams} />
-                <Label htmlFor="params-mode" className="text-xs text-muted-foreground cursor-pointer">Suggest AI Parameters (Temperature, TopK, etc.)</Label>
+                }
+              />
+              {family === "text" && (
+                <div className="flex items-center space-x-2 pt-2">
+                  <Switch id="params-mode" checked={includeParams} onCheckedChange={setIncludeParams} />
+                  <Label htmlFor="params-mode" className="text-[10px] sm:text-xs text-muted-foreground cursor-pointer">
+                    <span className="hidden xs:inline">Suggest AI Parameters (Temperature, TopK, etc.)</span>
+                    <span className="xs:hidden">Suggest AI Params</span>
+                  </Label>
+                </div>
+              )}
+            </div>
+
+            {/* API Key Warning */}
+            {!hasApiKey && (
+              <div className="glass-panel p-3 sm:p-4 border-amber-500/30 bg-amber-500/5 text-amber-500 rounded text-xs sm:text-sm flex items-center gap-2">
+                <span className="animate-pulse flex-shrink-0">●</span>
+                <span className="hidden sm:inline">
+                  Connect your Gemini API key using the button in the top right to enable refinement.
+                </span>
+                <span className="sm:hidden">Connect API key to enable refinement.</span>
               </div>
             )}
-          </div>
 
-          {!hasApiKey && (
-            <div className="glass-panel p-4 border-amber-500/30 bg-amber-500/5 text-amber-500 rounded text-sm flex items-center gap-2">
-              <span className="animate-pulse">●</span>
-              Connect your Gemini API key using the button in the top right to enable refinement.
+            {/* Clarification Panel */}
+            {questions && (
+              <div className="animate-in fade-in slide-in-from-top-4 duration-500">
+                <ClarificationPanel questions={questions} answers={answers} onAnswer={onAnswer} />
+              </div>
+            )}
+
+            {/* Action Bar */}
+            <ActionBar
+              onRefine={onRefine}
+              onReset={onReset}
+              onSave={onSave}
+              onExport={onExport}
+              busy={busy}
+              preflight={preflight}
+            />
+
+            {/* Mobile outputs inline (desktop uses right column) */}
+            <div className="lg:hidden space-y-6 sm:space-y-8 pt-6 sm:pt-8 border-t border-white/5">
+              <div className="flex items-center gap-2 text-muted-foreground uppercase text-[10px] sm:text-xs font-mono tracking-widest pl-1">
+                <span className="text-primary">04</span>
+                Output
+              </div>
+              <PreviewPromptCard
+                value={preview}
+                usage={usage?.preview || usage?.primary}
+                onCopy={onCopyPreview}
+                onInsert={() => setRaw(preview || "")}
+                onChange={(v) => setPreview(v)}
+              />
+              <PerfectedPromptCard
+                value={finalPrompt}
+                usage={cumulativeUsage || usage?.aggregate || usage?.final || usage?.primary}
+                onChange={(v) => setFinalPrompt(v)}
+              />
             </div>
-          )}
-
-          {questions && (
-            <div className="animate-in fade-in slide-in-from-top-4 duration-500">
-              <ClarificationPanel questions={questions} answers={answers} onAnswer={onAnswer} />
-            </div>
-          )}
-
-          <ActionBar onRefine={onRefine} onReset={onReset} onSave={onSave} onExport={onExport} busy={busy} preflight={preflight} />
-
-          {/* Mobile outputs inline (desktop uses right column) */}
-          <div className="lg:hidden space-y-8 pt-8 border-t border-white/5">
-            <PreviewPromptCard value={preview} usage={usage?.preview || usage?.primary} onCopy={onCopyPreview} onInsert={() => setRaw(preview || "")} onChange={(v) => setPreview(v)} />
-            <PerfectedPromptCard value={finalPrompt} usage={cumulativeUsage || usage?.aggregate || usage?.final || usage?.primary} onChange={(v) => setFinalPrompt(v)} />
           </div>
-        </div>
-      )} right={(
-        <div className="space-y-8">
-          <PreviewPromptCard value={preview} usage={usage?.preview || usage?.primary} onCopy={onCopyPreview} onInsert={() => setRaw(preview || "")} onChange={(v) => setPreview(v)} />
-          <PerfectedPromptCard value={finalPrompt} usage={cumulativeUsage || usage?.aggregate || usage?.final || usage?.primary} onChange={(v) => setFinalPrompt(v)} />
-        </div>
-      )} />
+        }
+        right={
+          <div className="space-y-6 sm:space-y-8">
+            <PreviewPromptCard
+              value={preview}
+              usage={usage?.preview || usage?.primary}
+              onCopy={onCopyPreview}
+              onInsert={() => setRaw(preview || "")}
+              onChange={(v) => setPreview(v)}
+            />
+            <PerfectedPromptCard
+              value={finalPrompt}
+              usage={cumulativeUsage || usage?.aggregate || usage?.final || usage?.primary}
+              onChange={(v) => setFinalPrompt(v)}
+            />
+          </div>
+        }
+      />
       {showSupportToast && (
-        <SupportToast
-          onClose={() => setShowSupportToast(false)}
-          milestone={supportMilestone}
-        />
+        <SupportToast onClose={() => setShowSupportToast(false)} milestone={supportMilestone} />
       )}
     </>
   );
