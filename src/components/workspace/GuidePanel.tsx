@@ -84,7 +84,7 @@ export function GuidePanel({ family }: { family: "text" | "image" | "video" }) {
                   </li>
                   <li className="flex gap-1.5 sm:gap-2">
                     <span className="text-primary flex-shrink-0">•</span>
-                    <span>Specify style early (e.g., "1970s film", "handheld").</span>
+                    <span>Specify style early (e.g., &ldquo;1970s film&rdquo;, &ldquo;handheld&rdquo;).</span>
                   </li>
                 </ul>
                 <ul className="list-none space-y-1.5 sm:space-y-2">
