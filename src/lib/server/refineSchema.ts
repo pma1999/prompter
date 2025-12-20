@@ -44,6 +44,17 @@ export const refineResponseSchema = {
         propertyOrdering: ["questionId", "optionId"],
       },
     },
+    suggestedParameters: {
+      type: Type.OBJECT,
+      properties: {
+        temperature: { type: Type.NUMBER },
+        topK: { type: Type.NUMBER },
+        topP: { type: Type.NUMBER },
+        maxOutputTokens: { type: Type.NUMBER },
+        stopSequences: { type: Type.ARRAY, items: { type: Type.STRING } },
+      },
+      propertyOrdering: ["temperature", "topK", "topP", "maxOutputTokens", "stopSequences"],
+    },
     warnings: { type: Type.ARRAY, items: { type: Type.STRING } },
     error: {
       type: Type.OBJECT,
@@ -62,6 +73,7 @@ export const refineResponseSchema = {
     "perfectedPrompt",
     "questions",
     "recommendedAnswers",
+    "suggestedParameters",
     "warnings",
     "error",
   ],

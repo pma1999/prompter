@@ -61,6 +61,7 @@ export interface RefineRequest {
     ttlSeconds?: number;
     forceRefresh?: boolean;
   };
+  includeParameters?: boolean;
   client?: { appVersion?: string; schemaVersion?: string };
 }
 
@@ -112,6 +113,13 @@ export interface RefineResponse {
   recommendedAnswers?: Array<{ questionId: string; optionId: string }>;
   warnings?: string[];
   error?: { code: string; message: string };
+  suggestedParameters?: {
+    temperature?: number;
+    topK?: number;
+    topP?: number;
+    maxOutputTokens?: number;
+    stopSequences?: string[];
+  };
   schemaVersion: string;
   usage?: RefineUsageBundle;
   // Optional caching metadata returned by server for client reuse

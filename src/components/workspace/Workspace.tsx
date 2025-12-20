@@ -12,6 +12,8 @@ import { ActionBar } from "@/components/workspace/ActionBar";
 import { PreviewPromptCard, PerfectedPromptCard } from "@/components/workspace/PreviewAndFinal";
 import { MODELS, getDefaultModelId } from "@/lib/models";
 import { ModelId, QuestionItem, SessionData, AssetRef } from "@/domain/types";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { GuidePanel } from "@/components/workspace/GuidePanel";
 import { toast } from "sonner";
 import { upsertSession, exportSession, importSession } from "@/lib/persistence";
@@ -46,7 +48,8 @@ export function Workspace() {
   const [hasApiKey, setHasApiKey] = useState<boolean>(false);
   const [showSupportToast, setShowSupportToast] = useState(false);
   const [supportMilestone, setSupportMilestone] = useState<number | undefined>(undefined);
-  
+  const [includeParams, setIncludeParams] = useState(false);
+
   useEffect(() => {
     (async () => {
       try {
@@ -231,6 +234,7 @@ export function Workspace() {
         previousQuestions: questions,
         context: imageAssets.length ? { image: { assets: imageAssets } } : undefined,
         cache: { mode: "explicit_per_conversation", cachedContentName: cacheName, key: cacheKey },
+        includeParameters: includeParams,
       });
 
       setPreview(resp.previewPrompt);
@@ -276,7 +280,7 @@ export function Workspace() {
 
       if (resp.status === "ready" && resp.perfectedPrompt) {
         toast.success("Perfected prompt ready");
-        
+
         // Check if we should show support toast
         const shouldShow = trackSuccessAndCheckShow();
         if (shouldShow) {
@@ -284,7 +288,7 @@ export function Workspace() {
           setSupportMilestone(stats.stats.totalSuccessfulRefinements);
           setShowSupportToast(true);
         }
-        
+
         // Keep clarifications, images, and conversation context so user can edit and re-refine
       } else if (resp.status === "needs_clarification") {
         toast.message("Answer a few clarifying questions to refine further");
@@ -380,10 +384,16 @@ export function Workspace() {
               family === "image"
                 ? "Describe your vision… (Purpose, subject, lighting, camera, mood)"
                 : family === "video"
-                ? "Describe your scene… (Style, shot, action, lighting, dialogue)"
-                : "Describe your goal… (Audience, constraints, desired format)"
+                  ? "Describe your scene… (Style, shot, action, lighting, dialogue)"
+                  : "Describe your goal… (Audience, constraints, desired format)"
             }
           />
+          {family === "text" && (
+            <div className="flex items-center space-x-2">
+              <Switch id="params-mode" checked={includeParams} onCheckedChange={setIncludeParams} />
+              <Label htmlFor="params-mode">Suggest AI Parameters (Temperature, TopK, etc.)</Label>
+            </div>
+          )}
           {!hasApiKey && (
             <div className="text-sm text-amber-600 dark:text-amber-500">Connect your Gemini API key using the button in the top right to enable refinement.</div>
           )}

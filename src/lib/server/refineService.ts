@@ -2,6 +2,7 @@ import { RefineRequest, RefineResponse, AssetRef, UsageMetadata, RefineUsageBund
 // ai client is injected by caller (BYOK)
 import { refineResponseSchema, previewOnlySchema, finalOnlySchema } from "@/lib/server/refineSchema";
 import { INSTRUCTION_PRESETS } from "@/lib/instructionPresets";
+import { TEXT_PROMPT_GUIDE } from "@/lib/server/guides/textGuide";
 import { GoogleGenAI } from "@google/genai";
 import {
   buildAssetsDigest,
@@ -25,7 +26,8 @@ export function getPersonaForFamily(family: "text" | "image" | "video"): string 
     return p?.persona ?? "You are a Sora 2 Prompt Expert.";
   }
   const p = INSTRUCTION_PRESETS.find((x) => x.id === "llm-refiner");
-  return p?.persona ?? "You are a meticulous prompt engineer.";
+  const base = p?.persona ?? "You are a meticulous prompt engineer.";
+  return `${base}\n\n${TEXT_PROMPT_GUIDE}`;
 }
 
 function serializeQA(questions?: Array<{ id: string; text: string; options: Array<{ id: string; label: string; recommended?: boolean; why?: string }> }>, answers?: Array<{ questionId: string; optionId: string }>): string {
@@ -45,16 +47,16 @@ export function buildDirective(req: RefineRequest, hasImages?: boolean): string 
   const targetModel = req.family === "image"
     ? "gemini-2.5-flash-image (image generation)"
     : req.family === "video"
-    ? "OpenAI Sora 2 (video generation)"
-    : "gemini-2.5-flash (text)";
-  
+      ? "OpenAI Sora 2 (video generation)"
+      : "gemini-2.5-flash (text)";
+
   const base = [
     "You are refining a user's raw intent into a perfect, ready-to-use prompt.",
     `Target generation model: ${targetModel}.`,
     ...(hasImages
       ? [
-          `- If reference image(s) are attached to this request, consider them as grounding visual context when drafting the prompt. These same images will also be sent to the ${targetModel} generation step.`,
-        ]
+        `- If reference image(s) are attached to this request, consider them as grounding visual context when drafting the prompt. These same images will also be sent to the ${targetModel} generation step.`,
+      ]
       : []),
     "Rules:",
     "- If critical details are missing, return status=\"needs_clarification\" with 1-3 multiple-choice questions (each with exactly one recommended option and a brief 'why'), plus a previewPrompt written entirely based on your recommended options.",
@@ -63,6 +65,11 @@ export function buildDirective(req: RefineRequest, hasImages?: boolean): string 
     "- Final prompts must be a single paragraph in English.",
     "- Use question ids as q1, q2, ... and option ids as A, B, C, ... (uppercase letters).",
     "- Provide recommendedAnswers as the list of (questionId, optionId) for your recommended choices.",
+    ...(req.includeParameters
+      ? [
+        "- The user EXPLICITLY requested AI parameter suggestions. You MUST strictly follow the 'Parameter Check' -> 'If YES' path in your cognitive process and provide 'suggestedParameters'.",
+      ]
+      : []),
   ].join("\n");
 
   const raw = `\nRaw Prompt:\n"""\n${req.rawPrompt}\n"""`;
@@ -75,7 +82,7 @@ export function buildDirective(req: RefineRequest, hasImages?: boolean): string 
   const priorQA = serializeQA(req.previousQuestions, req.answers);
 
   const directive = [base, raw, answersBlock, priorPreview, priorQA].join("\n");
-  if (process.env.NODE_ENV !== "production") { try { console.debug("[refine][service] directive", directive); } catch {} }
+  if (process.env.NODE_ENV !== "production") { try { console.debug("[refine][service] directive", directive); } catch { } }
   return directive;
 }
 
@@ -83,16 +90,16 @@ export function buildCachedPrefix(req: RefineRequest, hasImages?: boolean): stri
   const targetModel = req.family === "image"
     ? "gemini-2.5-flash-image (image generation)"
     : req.family === "video"
-    ? "OpenAI Sora 2 (video generation)"
-    : "gemini-2.5-flash (text)";
-  
+      ? "OpenAI Sora 2 (video generation)"
+      : "gemini-2.5-flash (text)";
+
   const base = [
     "You are refining a user's raw intent into a perfect, ready-to-use prompt.",
     `Target generation model: ${targetModel}.`,
     ...(hasImages
       ? [
-          `- If reference image(s) are attached to this request, consider them as grounding visual context when drafting the prompt. These same images will also be sent to the ${targetModel} generation step.`,
-        ]
+        `- If reference image(s) are attached to this request, consider them as grounding visual context when drafting the prompt. These same images will also be sent to the ${targetModel} generation step.`,
+      ]
       : []),
     "Rules:",
     "- If critical details are missing, return status=\"needs_clarification\" with 1-3 multiple-choice questions (each with exactly one recommended option and a brief 'why'), plus a previewPrompt written entirely based on your recommended options.",
@@ -105,7 +112,7 @@ export function buildCachedPrefix(req: RefineRequest, hasImages?: boolean): stri
 
   const raw = `\nRaw Prompt:\n"""\n${req.rawPrompt}\n"""`;
   const prefix = [base, raw].join("\n");
-  if (process.env.NODE_ENV !== "production") { try { console.debug("[refine][service] cachedPrefix", prefix); } catch {} }
+  if (process.env.NODE_ENV !== "production") { try { console.debug("[refine][service] cachedPrefix", prefix); } catch { } }
   return prefix;
 }
 
@@ -115,8 +122,11 @@ export function buildPrimarySuffix(req: RefineRequest): string {
     : "";
   const priorPreview = req.previousPreviewPrompt ? `\nPrevious Preview Prompt (for grounding only):\n"""\n${req.previousPreviewPrompt}\n"""` : "";
   const priorQA = serializeQA(req.previousQuestions, req.answers);
-  const suffix = [answersBlock, priorPreview, priorQA].join("\n");
-  if (process.env.NODE_ENV !== "production") { try { console.debug("[refine][service] primarySuffix", suffix); } catch {} }
+  const paramInstruction = req.includeParameters
+    ? "\n\n[SYSTEM NOTE]: The user EXPLICITLY requested AI parameter suggestions. You MUST strictly follow the 'Parameter Check' -> 'If YES' path in your cognitive process and provide 'suggestedParameters'."
+    : "";
+  const suffix = [answersBlock, priorPreview, priorQA, paramInstruction].join("\n");
+  if (process.env.NODE_ENV !== "production") { try { console.debug("[refine][service] primarySuffix", suffix); } catch { } }
   return suffix;
 }
 
@@ -124,16 +134,16 @@ function buildPreviewDirective(rawPrompt: string, assumed: Array<{ questionId: s
   const targetModel = family === "image"
     ? "gemini-2.5-flash-image (image generation)"
     : family === "video"
-    ? "OpenAI Sora 2 (video generation)"
-    : "gemini-2.5-flash (text)";
-  
+      ? "OpenAI Sora 2 (video generation)"
+      : "gemini-2.5-flash (text)";
+
   const base = [
     "Synthesize a preview prompt now, assuming the following answers are chosen.",
     `Target generation model: ${targetModel}.`,
     ...(hasImages
       ? [
-          `- If reference image(s) are attached to this request, consider them as grounding visual context when drafting the prompt. These same images will also be sent to the ${targetModel} generation step.`,
-        ]
+        `- If reference image(s) are attached to this request, consider them as grounding visual context when drafting the prompt. These same images will also be sent to the ${targetModel} generation step.`,
+      ]
       : []),
     "- The previewPrompt must be a single, descriptive paragraph in English.",
   ].join("\n");
@@ -144,7 +154,7 @@ function buildPreviewDirective(rawPrompt: string, assumed: Array<{ questionId: s
   const priorQA = serializeQA(previousQuestions, assumed);
 
   const directive = [base, raw, assumedBlock, priorPreview, priorQA].join("\n");
-  if (process.env.NODE_ENV !== "production") { try { console.debug("[refine][service] previewDirective", directive); } catch {} }
+  if (process.env.NODE_ENV !== "production") { try { console.debug("[refine][service] previewDirective", directive); } catch { } }
   return directive;
 }
 
@@ -152,16 +162,16 @@ function buildPreviewSuffix(rawPrompt: string, assumed: Array<{ questionId: stri
   const targetModel = family === "image"
     ? "gemini-2.5-flash-image (image generation)"
     : family === "video"
-    ? "OpenAI Sora 2 (video generation)"
-    : "gemini-2.5-flash (text)";
-  
+      ? "OpenAI Sora 2 (video generation)"
+      : "gemini-2.5-flash (text)";
+
   const base = [
     "Synthesize a preview prompt now, assuming the following answers are chosen.",
     `Target generation model: ${targetModel}.`,
     ...(hasImages
       ? [
-          `- If reference image(s) are attached to this request, consider them as grounding visual context when drafting the prompt. These same images will also be sent to the ${targetModel} generation step.`,
-        ]
+        `- If reference image(s) are attached to this request, consider them as grounding visual context when drafting the prompt. These same images will also be sent to the ${targetModel} generation step.`,
+      ]
       : []),
     "- The previewPrompt must be a single, descriptive paragraph in English.",
   ].join("\n");
@@ -169,7 +179,7 @@ function buildPreviewSuffix(rawPrompt: string, assumed: Array<{ questionId: stri
   const priorPreviewBlock = previousPreview ? `\nPrevious Preview (context):\n"""\n${previousPreview}\n"""` : "";
   const priorQA = serializeQA(previousQuestions, assumed);
   const suffix = [base, assumedBlock, priorPreviewBlock, priorQA].join("\n");
-  if (process.env.NODE_ENV !== "production") { try { console.debug("[refine][service] previewSuffix", suffix); } catch {} }
+  if (process.env.NODE_ENV !== "production") { try { console.debug("[refine][service] previewSuffix", suffix); } catch { } }
   return suffix;
 }
 
@@ -177,16 +187,16 @@ function buildFinalDirective(rawPrompt: string, allAnswers: Array<{ questionId: 
   const targetModel = family === "image"
     ? "gemini-2.5-flash-image (image generation)"
     : family === "video"
-    ? "OpenAI Sora 2 (video generation)"
-    : "gemini-2.5-flash (text)";
-  
+      ? "OpenAI Sora 2 (video generation)"
+      : "gemini-2.5-flash (text)";
+
   const base = [
     "Synthesize the perfected prompt now, considering the user's intent and the following answers.",
     `Target generation model: ${targetModel}.`,
     ...(hasImages
       ? [
-          `- If reference image(s) are attached to this request, consider them as grounding visual context when drafting the prompt. These same images will also be sent to the ${targetModel} generation step.`,
-        ]
+        `- If reference image(s) are attached to this request, consider them as grounding visual context when drafting the prompt. These same images will also be sent to the ${targetModel} generation step.`,
+      ]
       : []),
     "- The perfectedPrompt must be a single, descriptive paragraph in English.",
   ].join("\n");
@@ -197,7 +207,7 @@ function buildFinalDirective(rawPrompt: string, allAnswers: Array<{ questionId: 
   const priorQA = serializeQA(previousQuestions, allAnswers);
 
   const directive = [base, raw, answersBlock, priorPreview, priorQA].join("\n");
-  if (process.env.NODE_ENV !== "production") { try { console.debug("[refine][service] finalDirective", directive); } catch {} }
+  if (process.env.NODE_ENV !== "production") { try { console.debug("[refine][service] finalDirective", directive); } catch { } }
   return directive;
 }
 
@@ -205,16 +215,16 @@ function buildFinalSuffix(rawPrompt: string, allAnswers: Array<{ questionId: str
   const targetModel = family === "image"
     ? "gemini-2.5-flash-image (image generation)"
     : family === "video"
-    ? "OpenAI Sora 2 (video generation)"
-    : "gemini-2.5-flash (text)";
-  
+      ? "OpenAI Sora 2 (video generation)"
+      : "gemini-2.5-flash (text)";
+
   const base = [
     "Synthesize the perfected prompt now, considering the user's intent and the following answers.",
     `Target generation model: ${targetModel}.`,
     ...(hasImages
       ? [
-          `- If reference image(s) are attached to this request, consider them as grounding visual context when drafting the prompt. These same images will also be sent to the ${targetModel} generation step.`,
-        ]
+        `- If reference image(s) are attached to this request, consider them as grounding visual context when drafting the prompt. These same images will also be sent to the ${targetModel} generation step.`,
+      ]
       : []),
     "- The perfectedPrompt must be a single, descriptive paragraph in English.",
   ].join("\n");
@@ -222,7 +232,7 @@ function buildFinalSuffix(rawPrompt: string, allAnswers: Array<{ questionId: str
   const priorPreviewBlock = previousPreview ? `\nPrevious Preview (context):\n"""\n${previousPreview}\n"""` : "";
   const priorQA = serializeQA(previousQuestions, allAnswers);
   const suffix = [base, answersBlock, priorPreviewBlock, priorQA].join("\n");
-  if (process.env.NODE_ENV !== "production") { try { console.debug("[refine][service] finalSuffix", suffix); } catch {} }
+  if (process.env.NODE_ENV !== "production") { try { console.debug("[refine][service] finalSuffix", suffix); } catch { } }
   return suffix;
 }
 
@@ -235,14 +245,14 @@ function coerceResponseJson(text: string): unknown {
     if (start >= 0 && end > start) {
       try {
         return JSON.parse(text.slice(start, end + 1));
-      } catch {}
+      } catch { }
     }
     const arrStart = text.indexOf("[");
     const arrEnd = text.lastIndexOf("]");
     if (arrStart >= 0 && arrEnd > arrStart) {
       try {
         return JSON.parse(text.slice(arrStart, arrEnd + 1));
-      } catch {}
+      } catch { }
     }
     throw new Error("MODEL_RETURNED_NON_JSON");
   }
@@ -335,7 +345,7 @@ export async function refine(ai: GoogleGenAI, req: RefineRequest): Promise<Refin
   if (useExplicit) {
     // Guard against stale cache reuse: if the client's key does not match the computed key, ignore provided cache name
     if (req.cache?.key && req.cache.key !== computedKey) {
-      try { console.debug("[refine][cache] key_mismatch_discard", { provided: req.cache.key, computed: computedKey, cachedContentName }); } catch {}
+      try { console.debug("[refine][cache] key_mismatch_discard", { provided: req.cache.key, computed: computedKey, cachedContentName }); } catch { }
       cachedContentName = undefined;
     }
     try {
@@ -356,7 +366,7 @@ export async function refine(ai: GoogleGenAI, req: RefineRequest): Promise<Refin
       cacheCreated = ensured.created;
       cacheExpireTime = ensured.expireTime;
     } catch (err: unknown) {
-      try { console.warn("[refine][cache] ensure_error", { key, error: (err as Error)?.message }); } catch {}
+      try { console.warn("[refine][cache] ensure_error", { key, error: (err as Error)?.message }); } catch { }
       cachedContentName = undefined;
     }
   }
@@ -371,24 +381,24 @@ export async function refine(ai: GoogleGenAI, req: RefineRequest): Promise<Refin
     config: (
       useExplicit && cachedContentName
         ? {
-            cachedContent: cachedContentName,
-            thinkingConfig: { thinkingBudget },
-            responseMimeType: "application/json",
-            responseSchema: refineResponseSchema,
-            temperature: 0.6,
-          }
+          cachedContent: cachedContentName,
+          thinkingConfig: { thinkingBudget },
+          responseMimeType: "application/json",
+          responseSchema: refineResponseSchema,
+          temperature: 0.6,
+        }
         : {
-            systemInstruction: persona,
-            thinkingConfig: { thinkingBudget },
-            responseMimeType: "application/json",
-            responseSchema: refineResponseSchema,
-            temperature: 0.6,
-          }
+          systemInstruction: persona,
+          thinkingConfig: { thinkingBudget },
+          responseMimeType: "application/json",
+          responseSchema: refineResponseSchema,
+          temperature: 0.6,
+        }
     ),
   });
-  try { console.debug("[refine][service] primary.raw", response.text); } catch {}
+  try { console.debug("[refine][service] primary.raw", response.text); } catch { }
   const primaryUsage = extractUsageMetadata(response);
-  try { console.debug("[refine][service] primary.usage", primaryUsage); } catch {}
+  try { console.debug("[refine][service] primary.usage", primaryUsage); } catch { }
 
   let usagePreviewVar: UsageMetadata | undefined;
   let usageFinalVar: UsageMetadata | undefined;
@@ -396,9 +406,16 @@ export async function refine(ai: GoogleGenAI, req: RefineRequest): Promise<Refin
 
   const jsonUnknown = coerceResponseJson(response.text || "");
   const json = jsonUnknown as {
-    status?: RefineResponse["status"]; previewPrompt?: string; perfectedPrompt?: string; questions?: Array<{ id: string; text: string; options: Array<{ id: string; label: string; recommended?: boolean; why?: string }> }>; recommendedAnswers?: Array<{ questionId: string; optionId: string }>; warnings?: string[]; error?: { code: string; message: string };
+    status?: RefineResponse["status"];
+    previewPrompt?: string;
+    perfectedPrompt?: string;
+    questions?: Array<{ id: string; text: string; options: Array<{ id: string; label: string; recommended?: boolean; why?: string }> }>;
+    recommendedAnswers?: Array<{ questionId: string; optionId: string }>;
+    suggestedParameters?: RefineResponse["suggestedParameters"];
+    warnings?: string[];
+    error?: { code: string; message: string };
   };
-  try { console.debug("[refine][service] primary.parsed", json); } catch {}
+  try { console.debug("[refine][service] primary.parsed", json); } catch { }
 
   const conversationId = req.conversationId || crypto.randomUUID();
   const revision = (req.answers?.length || 0) + 1;
@@ -417,13 +434,126 @@ export async function refine(ai: GoogleGenAI, req: RefineRequest): Promise<Refin
   for (const a of recommended) merged[a.questionId] = a.optionId;
   for (const a of userAnswers) merged[a.questionId] = a.optionId;
   const assumed = Object.entries(merged).map(([questionId, optionId]) => ({ questionId, optionId }));
-  try { console.debug("[refine][service] mergedAnswers", assumed); } catch {}
+  try { console.debug("[refine][service] mergedAnswers", assumed); } catch { }
 
   const hasQuestions = !!json.questions && json.questions.length > 0;
 
   if (status === "needs_clarification" && hasQuestions && !previewPrompt) {
     const previewContents = useExplicit && cachedContentName
       ? buildUserContents(
+        buildPreviewSuffix(
+          req.rawPrompt,
+          assumed,
+          req.family,
+          req.previousPreviewPrompt,
+          req.previousQuestions,
+          hasImages
+        ),
+        undefined
+      )
+      : buildUserContents(
+        buildPreviewDirective(
+          req.rawPrompt,
+          assumed,
+          req.family,
+          req.previousPreviewPrompt,
+          req.previousQuestions,
+          hasImages
+        ),
+        req.context?.image?.assets
+      );
+
+    const previewResp = await ai.models.generateContent({
+      model: modelName,
+      contents: previewContents,
+      config: (
+        useExplicit && cachedContentName
+          ? {
+            cachedContent: cachedContentName,
+            thinkingConfig: { thinkingBudget: Math.min(thinkingBudget, 2048) },
+            responseMimeType: "application/json",
+            responseSchema: previewOnlySchema,
+            temperature: 0.4,
+          }
+          : {
+            systemInstruction: persona,
+            thinkingConfig: { thinkingBudget: Math.min(thinkingBudget, 2048) },
+            responseMimeType: "application/json",
+            responseSchema: previewOnlySchema,
+            temperature: 0.4,
+          }
+      ),
+    });
+    try { console.debug("[refine][service] preview.raw", previewResp.text); } catch { }
+    const previewUsage = extractUsageMetadata(previewResp);
+    try { console.debug("[refine][service] preview.usage", previewUsage); } catch { }
+    const previewJson = coerceResponseJson(previewResp.text || "") as { previewPrompt?: string };
+    try { console.debug("[refine][service] preview.parsed", previewJson); } catch { }
+    if (previewJson.previewPrompt) previewPrompt = previewJson.previewPrompt;
+    usagePreviewVar = previewUsage;
+  }
+
+  if ((status === "ready" || !hasQuestions) && !perfectedPrompt) {
+    const finalContents = useExplicit && cachedContentName
+      ? buildUserContents(
+        buildFinalSuffix(
+          req.rawPrompt,
+          assumed,
+          req.family,
+          req.previousPreviewPrompt,
+          req.previousQuestions,
+          hasImages
+        ),
+        undefined
+      )
+      : buildUserContents(
+        buildFinalDirective(
+          req.rawPrompt,
+          assumed,
+          req.family,
+          req.previousPreviewPrompt,
+          req.previousQuestions,
+          hasImages
+        ),
+        req.context?.image?.assets
+      );
+
+    const finalResp = await ai.models.generateContent({
+      model: modelName,
+      contents: finalContents,
+      config: (
+        useExplicit && cachedContentName
+          ? {
+            cachedContent: cachedContentName,
+            thinkingConfig: { thinkingBudget },
+            responseMimeType: "application/json",
+            responseSchema: finalOnlySchema,
+            temperature: 0.6,
+          }
+          : {
+            systemInstruction: persona,
+            thinkingConfig: { thinkingBudget },
+            responseMimeType: "application/json",
+            responseSchema: finalOnlySchema,
+            temperature: 0.6,
+          }
+      ),
+    });
+    try { console.debug("[refine][service] final.raw", finalResp.text); } catch { }
+    const finalUsage = extractUsageMetadata(finalResp);
+    try { console.debug("[refine][service] final.usage", finalUsage); } catch { }
+    const finalJson = coerceResponseJson(finalResp.text || "") as { perfectedPrompt?: string };
+    try { console.debug("[refine][service] final.parsed", finalJson); } catch { }
+    if (finalJson.perfectedPrompt) {
+      perfectedPrompt = finalJson.perfectedPrompt;
+    }
+    usageFinalVar = finalUsage;
+  }
+
+  if (!hasQuestions && !perfectedPrompt) {
+    if (!previewPrompt && assumed.length > 0) {
+      const previewFallbackContents = useExplicit && cachedContentName
+        ? buildUserContents(
           buildPreviewSuffix(
             req.rawPrompt,
             assumed,
@@ -434,7 +564,7 @@ export async function refine(ai: GoogleGenAI, req: RefineRequest): Promise<Refin
           ),
           undefined
         )
-      : buildUserContents(
+        : buildUserContents(
           buildPreviewDirective(
             req.rawPrompt,
             assumed,
@@ -446,145 +576,32 @@ export async function refine(ai: GoogleGenAI, req: RefineRequest): Promise<Refin
           req.context?.image?.assets
         );
 
-    const previewResp = await ai.models.generateContent({
-      model: modelName,
-      contents: previewContents,
-      config: (
-        useExplicit && cachedContentName
-          ? {
-              cachedContent: cachedContentName,
-              thinkingConfig: { thinkingBudget: Math.min(thinkingBudget, 2048) },
-              responseMimeType: "application/json",
-              responseSchema: previewOnlySchema,
-              temperature: 0.4,
-            }
-          : {
-              systemInstruction: persona,
-              thinkingConfig: { thinkingBudget: Math.min(thinkingBudget, 2048) },
-              responseMimeType: "application/json",
-              responseSchema: previewOnlySchema,
-              temperature: 0.4,
-            }
-      ),
-    });
-    try { console.debug("[refine][service] preview.raw", previewResp.text); } catch {}
-    const previewUsage = extractUsageMetadata(previewResp);
-    try { console.debug("[refine][service] preview.usage", previewUsage); } catch {}
-    const previewJson = coerceResponseJson(previewResp.text || "") as { previewPrompt?: string };
-    try { console.debug("[refine][service] preview.parsed", previewJson); } catch {}
-    if (previewJson.previewPrompt) previewPrompt = previewJson.previewPrompt;
-    usagePreviewVar = previewUsage;
-  }
-
-  if ((status === "ready" || !hasQuestions) && !perfectedPrompt) {
-    const finalContents = useExplicit && cachedContentName
-      ? buildUserContents(
-          buildFinalSuffix(
-            req.rawPrompt,
-            assumed,
-            req.family,
-            req.previousPreviewPrompt,
-            req.previousQuestions,
-            hasImages
-          ),
-          undefined
-        )
-      : buildUserContents(
-          buildFinalDirective(
-            req.rawPrompt,
-            assumed,
-            req.family,
-            req.previousPreviewPrompt,
-            req.previousQuestions,
-            hasImages
-          ),
-          req.context?.image?.assets
-        );
-
-    const finalResp = await ai.models.generateContent({
-      model: modelName,
-      contents: finalContents,
-      config: (
-        useExplicit && cachedContentName
-          ? {
-              cachedContent: cachedContentName,
-              thinkingConfig: { thinkingBudget },
-              responseMimeType: "application/json",
-              responseSchema: finalOnlySchema,
-              temperature: 0.6,
-            }
-          : {
-              systemInstruction: persona,
-              thinkingConfig: { thinkingBudget },
-              responseMimeType: "application/json",
-              responseSchema: finalOnlySchema,
-              temperature: 0.6,
-            }
-      ),
-    });
-    try { console.debug("[refine][service] final.raw", finalResp.text); } catch {}
-    const finalUsage = extractUsageMetadata(finalResp);
-    try { console.debug("[refine][service] final.usage", finalUsage); } catch {}
-    const finalJson = coerceResponseJson(finalResp.text || "") as { perfectedPrompt?: string };
-    try { console.debug("[refine][service] final.parsed", finalJson); } catch {}
-    if (finalJson.perfectedPrompt) {
-      perfectedPrompt = finalJson.perfectedPrompt;
-    }
-    usageFinalVar = finalUsage;
-  }
-
-  if (!hasQuestions && !perfectedPrompt) {
-    if (!previewPrompt && assumed.length > 0) {
-      const previewFallbackContents = useExplicit && cachedContentName
-        ? buildUserContents(
-            buildPreviewSuffix(
-              req.rawPrompt,
-              assumed,
-              req.family,
-              req.previousPreviewPrompt,
-              req.previousQuestions,
-              hasImages
-            ),
-            undefined
-          )
-        : buildUserContents(
-            buildPreviewDirective(
-              req.rawPrompt,
-              assumed,
-              req.family,
-              req.previousPreviewPrompt,
-              req.previousQuestions,
-              hasImages
-            ),
-            req.context?.image?.assets
-          );
-
       const previewResp = await ai.models.generateContent({
         model: modelName,
         contents: previewFallbackContents,
         config: (
           useExplicit && cachedContentName
             ? {
-                cachedContent: cachedContentName,
-                thinkingConfig: { thinkingBudget: Math.min(thinkingBudget, 1024) },
-                responseMimeType: "application/json",
-                responseSchema: previewOnlySchema,
-                temperature: 0.3,
-              }
+              cachedContent: cachedContentName,
+              thinkingConfig: { thinkingBudget: Math.min(thinkingBudget, 1024) },
+              responseMimeType: "application/json",
+              responseSchema: previewOnlySchema,
+              temperature: 0.3,
+            }
             : {
-                systemInstruction: persona,
-                thinkingConfig: { thinkingBudget: Math.min(thinkingBudget, 1024) },
-                responseMimeType: "application/json",
-                responseSchema: previewOnlySchema,
-                temperature: 0.3,
-              }
+              systemInstruction: persona,
+              thinkingConfig: { thinkingBudget: Math.min(thinkingBudget, 1024) },
+              responseMimeType: "application/json",
+              responseSchema: previewOnlySchema,
+              temperature: 0.3,
+            }
         ),
       });
-      try { console.debug("[refine][service] previewFallback.raw", previewResp.text); } catch {}
+      try { console.debug("[refine][service] previewFallback.raw", previewResp.text); } catch { }
       const previewFallbackUsage = extractUsageMetadata(previewResp);
-      try { console.debug("[refine][service] previewFallback.usage", previewFallbackUsage); } catch {}
+      try { console.debug("[refine][service] previewFallback.usage", previewFallbackUsage); } catch { }
       const pj = coerceResponseJson(previewResp.text || "") as { previewPrompt?: string };
-      try { console.debug("[refine][service] previewFallback.parsed", pj); } catch {}
+      try { console.debug("[refine][service] previewFallback.parsed", pj); } catch { }
       if (pj.previewPrompt) previewPrompt = pj.previewPrompt;
       usagePreviewFallbackVar = previewFallbackUsage;
     }
@@ -610,6 +627,7 @@ export async function refine(ai: GoogleGenAI, req: RefineRequest): Promise<Refin
     perfectedPrompt,
     questions: annotateRecommendedOptions(json.questions, json.recommendedAnswers),
     recommendedAnswers: json.recommendedAnswers,
+    suggestedParameters: json.suggestedParameters,
     warnings: json.warnings,
     error: json.error,
     schemaVersion: "1.0",
@@ -622,7 +640,7 @@ export async function refine(ai: GoogleGenAI, req: RefineRequest): Promise<Refin
       created: cacheCreated,
     } : (primaryUsage ? { mode: "implicit_only", usage: { totalTokenCount: primaryUsage.totalTokenCount, cachedTokens: undefined } } : undefined),
   };
-  try { console.debug("[refine][service] outgoing", result); } catch {}
+  try { console.debug("[refine][service] outgoing", result); } catch { }
 
   if (useExplicit && cachedContentName) {
     if (statusOut === "needs_clarification") {
