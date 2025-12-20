@@ -13,13 +13,15 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { getAuthStatus, connectApiKey, disconnectApiKey } from "@/lib/api/auth";
-import { emitCommand } from "@/lib/commandBus";
+import { emitCommand, subscribeCommands } from "@/lib/commandBus";
 import { Key, Check, X } from "lucide-react";
 
 export function ApiKeyManager({
   onStatusChange,
+  showButton = true,
 }: {
   onStatusChange?: (connected: boolean) => void;
+  showButton?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -36,6 +38,15 @@ export function ApiKeyManager({
         setExpiresAt(s.expiresAt);
       } catch {}
     })();
+  }, []);
+
+  // Listen for connect-api-key command (used by mobile menu)
+  useEffect(() => {
+    return subscribeCommands((cmd) => {
+      if (cmd === "connect-api-key") {
+        setOpen(true);
+      }
+    });
   }, []);
 
   function onOpen() {
@@ -97,21 +108,23 @@ export function ApiKeyManager({
 
   return (
     <>
-      <Button
-        variant={connected ? "default" : "outline"}
-        size="sm"
-        onClick={onOpen}
-        className="gap-1.5 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 text-[10px] sm:text-xs touch-target-sm"
-      >
-        {connected ? (
-          <Check className="size-3 sm:size-3.5" />
-        ) : (
-          <Key className="size-3 sm:size-3.5" />
-        )}
-        {/* Full label on md+, short on smaller */}
-        <span className="hidden md:inline">{label}</span>
-        <span className="md:hidden">{shortLabel}</span>
-      </Button>
+      {showButton && (
+        <Button
+          variant={connected ? "default" : "outline"}
+          size="sm"
+          onClick={onOpen}
+          className="gap-1.5 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 text-[10px] sm:text-xs touch-target-sm"
+        >
+          {connected ? (
+            <Check className="size-3 sm:size-3.5" />
+          ) : (
+            <Key className="size-3 sm:size-3.5" />
+          )}
+          {/* Full label on md+, short on smaller */}
+          <span className="hidden md:inline">{label}</span>
+          <span className="md:hidden">{shortLabel}</span>
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-md">
