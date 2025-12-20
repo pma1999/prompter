@@ -29,7 +29,12 @@ import { trackSuccessAndCheckShow, getTrackingStats } from "@/lib/supportTrackin
 export function Workspace() {
   const [modelId, setModelId] = useState<ModelId>(getDefaultModelId("image"));
   const family = useMemo(() => MODELS.find((m) => m.id === modelId)!.family, [modelId]);
-  const presetId = family === "image" ? "image-virtuoso" : family === "video" ? "sora-2-virtuoso" : "llm-refiner";
+  const [presetId, setPresetId] = useState<string>(family === "image" ? "image-virtuoso" : family === "video" ? "sora-2-virtuoso" : "llm-refiner");
+
+  useEffect(() => {
+    const defaults: Record<string, string> = { text: "llm-refiner", image: "image-virtuoso", video: "sora-2-virtuoso" };
+    if (defaults[family]) setPresetId(defaults[family]);
+  }, [family]);
   const [raw, setRaw] = useState("");
 
   const [preview, setPreview] = useState<string | undefined>(undefined);
@@ -356,6 +361,7 @@ export function Workspace() {
     setPreview(s.previewPrompt);
     setFinalPrompt(s.perfectedPrompt);
     setQuestions(s.questions);
+    if (s.instructionPresetId) setPresetId(s.instructionPresetId);
     const ans: Record<string, string | undefined> = {};
     s.answers?.forEach((a) => (ans[a.questionId] = a.optionId));
     setAnswers(ans);
@@ -366,47 +372,73 @@ export function Workspace() {
   return (
     <>
       <AppShell left={<LeftSidebar onSelect={onSelectSession} />} center={(
-        <div className="space-y-4">
+        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
           <ModelSwitch value={modelId} onChange={handleModelChange} />
-          <GuidePanel family={family} />
-          {family === "image" && <ImageTemplatePicker onInsert={handleInsertTemplate} />}
-          {family === "image" && (
-            <ImageReferenceUploader assets={imageAssets} onChangeAssets={setImageAssets} />
-          )}
-          {family === "video" && (
-            <ImageReferenceUploader assets={imageAssets} onChangeAssets={setImageAssets} />
-          )}
-          <RawPromptInput
-            value={raw}
-            onChange={setRaw}
-            onSubmit={onRefine}
-            placeholder={
-              family === "image"
-                ? "Describe your vision… (Purpose, subject, lighting, camera, mood)"
-                : family === "video"
-                  ? "Describe your scene… (Style, shot, action, lighting, dialogue)"
-                  : "Describe your goal… (Audience, constraints, desired format)"
-            }
-          />
-          {family === "text" && (
-            <div className="flex items-center space-x-2">
-              <Switch id="params-mode" checked={includeParams} onCheckedChange={setIncludeParams} />
-              <Label htmlFor="params-mode">Suggest AI Parameters (Temperature, TopK, etc.)</Label>
+
+          <div className="space-y-6">
+            <div className="flex items-center gap-2 text-muted-foreground uppercase text-xs font-mono tracking-widest pl-1">
+              <span className="text-primary">02</span>
+              Context & Input
+            </div>
+
+            <GuidePanel family={family} />
+            {family === "image" && <ImageTemplatePicker onInsert={handleInsertTemplate} />}
+            {family === "image" && (
+              <ImageReferenceUploader assets={imageAssets} onChangeAssets={setImageAssets} />
+            )}
+            {family === "video" && (
+              <ImageReferenceUploader assets={imageAssets} onChangeAssets={setImageAssets} />
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-muted-foreground uppercase text-xs font-mono tracking-widest pl-1">
+              <span className="text-primary">03</span>
+              Raw Prompt
+            </div>
+            <RawPromptInput
+              value={raw}
+              onChange={setRaw}
+              onSubmit={onRefine}
+              placeholder={
+                family === "image"
+                  ? "Describe your vision… (Purpose, subject, lighting, camera, mood)"
+                  : family === "video"
+                    ? "Describe your scene… (Style, shot, action, lighting, dialogue)"
+                    : "Describe your goal… (Audience, constraints, desired format)"
+              }
+            />
+            {family === "text" && (
+              <div className="flex items-center space-x-2 pt-2">
+                <Switch id="params-mode" checked={includeParams} onCheckedChange={setIncludeParams} />
+                <Label htmlFor="params-mode" className="text-xs text-muted-foreground cursor-pointer">Suggest AI Parameters (Temperature, TopK, etc.)</Label>
+              </div>
+            )}
+          </div>
+
+          {!hasApiKey && (
+            <div className="glass-panel p-4 border-amber-500/30 bg-amber-500/5 text-amber-500 rounded text-sm flex items-center gap-2">
+              <span className="animate-pulse">●</span>
+              Connect your Gemini API key using the button in the top right to enable refinement.
             </div>
           )}
-          {!hasApiKey && (
-            <div className="text-sm text-amber-600 dark:text-amber-500">Connect your Gemini API key using the button in the top right to enable refinement.</div>
+
+          {questions && (
+            <div className="animate-in fade-in slide-in-from-top-4 duration-500">
+              <ClarificationPanel questions={questions} answers={answers} onAnswer={onAnswer} />
+            </div>
           )}
-          {questions && <ClarificationPanel questions={questions} answers={answers} onAnswer={onAnswer} />}
+
           <ActionBar onRefine={onRefine} onReset={onReset} onSave={onSave} onExport={onExport} busy={busy} preflight={preflight} />
+
           {/* Mobile outputs inline (desktop uses right column) */}
-          <div className="lg:hidden space-y-4">
+          <div className="lg:hidden space-y-8 pt-8 border-t border-white/5">
             <PreviewPromptCard value={preview} usage={usage?.preview || usage?.primary} onCopy={onCopyPreview} onInsert={() => setRaw(preview || "")} onChange={(v) => setPreview(v)} />
             <PerfectedPromptCard value={finalPrompt} usage={cumulativeUsage || usage?.aggregate || usage?.final || usage?.primary} onChange={(v) => setFinalPrompt(v)} />
           </div>
         </div>
       )} right={(
-        <div>
+        <div className="space-y-8">
           <PreviewPromptCard value={preview} usage={usage?.preview || usage?.primary} onCopy={onCopyPreview} onInsert={() => setRaw(preview || "")} onChange={(v) => setPreview(v)} />
           <PerfectedPromptCard value={finalPrompt} usage={cumulativeUsage || usage?.aggregate || usage?.final || usage?.primary} onChange={(v) => setFinalPrompt(v)} />
         </div>

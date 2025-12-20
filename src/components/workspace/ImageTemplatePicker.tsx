@@ -15,7 +15,12 @@ export function ImageTemplatePicker({ onInsert }: { onInsert: (text: string) => 
   return (
     <div className="flex flex-wrap gap-2">
       {templates.map((t) => (
-        <Badge key={t.id} variant="secondary" className="cursor-pointer" onClick={() => onInsert(t.scaffold)}>
+        <Badge
+          key={t.id}
+          variant="outline"
+          className="cursor-pointer bg-muted/50 dark:bg-black/40 border-border/40 dark:border-primary/20 hover:border-primary dark:hover:border-primary text-foreground/80 hover:text-primary dark:text-muted-foreground dark:hover:text-primary transition-all duration-300 px-3 py-1.5 font-normal tracking-wide active:scale-95 text-[11px]"
+          onClick={() => onInsert(t.scaffold)}
+        >
           {t.label}
         </Badge>
       ))}

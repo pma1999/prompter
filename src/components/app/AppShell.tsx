@@ -3,18 +3,13 @@
 import { ReactNode } from "react";
 import { Sidebar, SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { Menubar, MenubarContent, MenubarItem, MenubarMenu, MenubarShortcut, MenubarTrigger } from "@/components/ui/menubar";
-import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
-import { CommandMenu } from "@/components/common/CommandMenu";
 import { ApiKeyManager } from "@/components/common/ApiKeyManager";
 import { FeedbackButton } from "@/components/common/FeedbackButton";
 import { FeedbackDialog } from "@/components/common/FeedbackDialog";
-import { AppFooter } from "@/components/common/AppFooter";
-import { MessageSquare } from "lucide-react";
 import { subscribeCommands, emitCommand } from "@/lib/commandBus";
 import { useEffect, useRef, useState } from "react";
+import { GrainOverlay } from "@/components/ui/GrainOverlay";
 
 export function AppShell({ left, center, right }: { left: ReactNode; center: ReactNode; right: ReactNode }) {
   const apiKeyButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -33,102 +28,62 @@ export function AppShell({ left, center, right }: { left: ReactNode; center: Rea
 
   return (
     <>
+      <GrainOverlay />
       <SidebarProvider>
-        <div className="flex min-h-dvh w-full">
-          {/* Left Sidebar (responsive with mobile sheet) */}
-          <Sidebar>
+        <div className="flex min-h-dvh w-full overflow-hidden bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
+          {/* Left Sidebar - "Tool Belt" */}
+          <Sidebar className="border-r border-border/40 bg-card/50 backdrop-blur-md">
             {left}
           </Sidebar>
-          {/* Main Content */}
-          <SidebarInset className="flex-1">
-            {/* Header */}
-            <header className="sticky top-0 z-30 bg-background/80 backdrop-blur border-b">
-              {/* Desktop header */}
-              <div className="hidden md:flex h-14 items-center px-4 gap-3">
-                <div className="font-semibold tracking-tight">Prompt Perfection</div>
-                <Separator orientation="vertical" className="mx-1 h-6" />
-                <Menubar className="h-8">
-                  <MenubarMenu>
-                    <MenubarTrigger>File</MenubarTrigger>
-                    <MenubarContent>
-                      <MenubarItem>
-                        New Session <MenubarShortcut>Ctrl+N</MenubarShortcut>
-                      </MenubarItem>
-                      <MenubarItem>
-                        Import JSON <MenubarShortcut>Ctrl+I</MenubarShortcut>
-                      </MenubarItem>
-                      <MenubarItem>
-                        Export JSON <MenubarShortcut>Ctrl+E</MenubarShortcut>
-                      </MenubarItem>
-                    </MenubarContent>
-                  </MenubarMenu>
-                  <MenubarMenu>
-                    <MenubarTrigger>Help</MenubarTrigger>
-                    <MenubarContent>
-                      <MenubarItem>Docs</MenubarItem>
-                      <MenubarItem>Keyboard Shortcuts</MenubarItem>
-                    </MenubarContent>
-                  </MenubarMenu>
-                </Menubar>
-                <div className="ml-auto flex items-center gap-2">
-                  <CommandMenu />
-                  <ThemeToggle />
-                  <div>
-                    <span className="hidden" />
-                    <ApiKeyManager />
-                  </div>
-                  <FeedbackButton />
-                  <Button variant="outline" size="sm" asChild>
-                    <a href="https://ai.google.dev/gemini-api" target="_blank" rel="noreferrer">Open AI Studio</a>
-                  </Button>
+
+          {/* Main Content Area */}
+          <SidebarInset className="flex-1 flex flex-col relative overflow-hidden">
+            {/* Header - "Command Bar" */}
+            <header className="sticky top-0 z-30 h-14 flex items-center justify-between px-4 lg:px-6 border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 text-foreground/80 md:hidden">
+                  <SidebarTrigger />
                 </div>
+                <div className="font-display font-bold text-lg tracking-widest uppercase text-foreground/90">
+                  <span className="text-primary mr-1">{"///"}</span>Prompter
+                </div>
+                <Separator orientation="vertical" className="h-4 bg-border/40 hidden md:block" />
+                <nav className="hidden md:flex items-center gap-6 text-xs font-mono tracking-wider uppercase text-muted-foreground">
+                  <button onClick={() => emitCommand('new-session')} className="hover:text-primary transition-colors">New</button>
+                  <button onClick={() => emitCommand('import-session')} className="hover:text-primary transition-colors">Import</button>
+                  <button onClick={() => emitCommand('export-session')} className="hover:text-primary transition-colors">Export</button>
+                </nav>
               </div>
-              {/* Mobile header */}
-              <div className="md:hidden flex flex-col w-full gap-2 px-3 py-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <SidebarTrigger aria-label="Toggle sessions" />
-                    <div className="font-semibold tracking-tight truncate">Prompt Perfection</div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <ThemeToggle />
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">More</Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>File</DropdownMenuLabel>
-                        <DropdownMenuItem onSelect={() => emitCommand("new-session")}>New Session</DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => emitCommand("import-session")}>Import JSON</DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => emitCommand("export-session")}>Export JSON</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuLabel>Help</DropdownMenuLabel>
-                        <DropdownMenuItem onSelect={() => emitCommand("open-docs")}>Docs</DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => emitCommand("open-shortcuts")}>Keyboard Shortcuts</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuLabel>Settings</DropdownMenuLabel>
-                        <DropdownMenuItem onSelect={() => emitCommand("connect-api-key")}>Connect API Key</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuLabel>Feedback</DropdownMenuLabel>
-                        <DropdownMenuItem onSelect={() => emitCommand("open-feedback")}>
-                          <MessageSquare className="mr-2 size-4" />
-                          Provide Feedback
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CommandMenu />
+
+              <div className="flex items-center gap-3">
+                <div className="hidden md:flex items-center gap-2">
                   <ApiKeyManager />
+                  <FeedbackButton />
+                  <ThemeToggle />
+                </div>
+                <div className="md:hidden">
+                  {/* Mobile Menu simplified */}
+                  <ThemeToggle />
                 </div>
               </div>
             </header>
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-4 p-3 sm:p-4">
-              <main className="min-h-[calc(100dvh-56px)]">{center}</main>
-              <aside className="min-h-[calc(100dvh-56px)] border-l pl-4 hidden lg:block">{right}</aside>
+
+            {/* Content Grid - "Canvas" & "Inspection Deck" */}
+            <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-12 h-full">
+              {/* Center Canvas - Focus Area */}
+              <main className="lg:col-span-7 xl:col-span-8 p-4 lg:p-8 overflow-y-auto no-scrollbar relative">
+                <div className="max-w-3xl mx-auto space-y-8 pb-20">
+                  {center}
+                </div>
+              </main>
+
+              {/* Right Inspection Deck - Data Slates */}
+              <aside className="hidden lg:block lg:col-span-5 xl:col-span-4 border-l border-border/40 bg-card/20 backdrop-blur-sm p-4 lg:p-6 overflow-y-auto no-scrollbar">
+                <div className="space-y-6 sticky top-6">
+                  {right}
+                </div>
+              </aside>
             </div>
-            <AppFooter />
           </SidebarInset>
         </div>
       </SidebarProvider>

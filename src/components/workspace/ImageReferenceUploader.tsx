@@ -2,7 +2,6 @@
 
 import { useId, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { AssetRef } from "@/domain/types";
 
@@ -48,10 +47,10 @@ async function compressImageToJpegDataUri(file: File, maxDim = 1600, quality = 0
       if (!ctx) throw new Error("Canvas unsupported");
       ctx.drawImage(bmp, 0, 0, w, h);
       const out = canvas.toDataURL("image/jpeg", quality);
-      try { bmp.close(); } catch {}
+      try { bmp.close(); } catch { }
       return out;
     }
-  } catch {}
+  } catch { }
 
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
@@ -160,67 +159,65 @@ export function ImageReferenceUploader({ assets, onChangeAssets }: ImageReferenc
   }
 
   return (
-    <Card>
-      <CardHeader className="py-4">
-        <CardTitle className="text-base">Reference Images (optional)</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
-            <input
-              ref={fileInputRef}
-              id={inputId}
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/heic,image/heif"
-              className="hidden"
-              multiple
-              onChange={(e) => {
-                const files = e.currentTarget.files;
-                void handleAddFiles(files);
-                // Reset input value so selecting the same file again triggers change
-                e.currentTarget.value = "";
-              }}
-            />
-            <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>
-              Add images
-            </Button>
-            {assets.length > 0 && (
-              <Button variant="ghost" size="sm" onClick={handleClear}>
-                Clear
-              </Button>
-            )}
-          </div>
-        </div>
+    <div className="glass-panel border-l-2 border-l-primary/30 p-1 relative overflow-hidden transition-all duration-300">
+      <input
+        ref={fileInputRef}
+        id={inputId}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/heic,image/heif"
+        className="hidden"
+        multiple
+        onChange={(e) => {
+          const files = e.currentTarget.files;
+          void handleAddFiles(files);
+          e.currentTarget.value = "";
+        }}
+      />
 
-        {assets.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+      {assets.length === 0 ? (
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="w-full flex items-center justify-center gap-3 py-4 hover:bg-white/5 transition-colors group"
+        >
+          <div className="size-8 rounded-full border border-dashed border-white/20 flex items-center justify-center text-muted-foreground group-hover:text-primary group-hover:border-primary bg-black/20">
+            <span className="text-lg">+</span>
+          </div>
+          <div className="text-left">
+            <div className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">Add Reference Images</div>
+            <div className="text-[10px] text-muted-foreground">Up to 4 images to guide structure (max 4MB total)</div>
+          </div>
+        </button>
+      ) : (
+        <div className="p-3 bg-black/20">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">References ({assets.length})</div>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="h-6 text-[10px] hover:text-primary">ADD MORE</Button>
+              <Button variant="ghost" size="sm" onClick={handleClear} className="h-6 text-[10px] hover:text-destructive">CLEAR ALL</Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 gap-2">
             {assets.map((a) => (
-              <div key={a.id || a.name} className="relative group border rounded-md overflow-hidden">
+              <div key={a.id || a.name} className="relative group aspect-square border border-white/10 rounded overflow-hidden bg-black">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   alt={a.name}
                   src={a.dataUri || a.url}
-                  className="h-28 w-full object-cover"
+                  className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity"
                 />
-                <div className="absolute inset-x-0 top-0 flex justify-between p-1 text-[10px] bg-gradient-to-b from-black/60 to-transparent text-white opacity-0 group-hover:opacity-100 transition">
-                  <span className="truncate max-w-[70%]">{a.name}</span>
-                  <button
-                    className="px-1 rounded bg-black/60 hover:bg-black/80"
-                    onClick={() => handleRemove(a.id)}
-                  >
-                    Remove
-                  </button>
-                </div>
+                <button
+                  className="absolute top-1 right-1 size-5 bg-black/80 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity border border-white/20 hover:border-red-500 hover:text-red-500"
+                  onClick={() => handleRemove(a.id)}
+                >
+                  ×
+                </button>
               </div>
             ))}
           </div>
-        )}
-
-        <p className="text-xs text-muted-foreground">
-          Attach 1–4 images to ground or edit. Supported: PNG, JPEG, WEBP, HEIC/HEIF. Max ~20MB total.
-        </p>
-      </CardContent>
-    </Card>
+        </div>
+      )}
+    </div>
   );
 }
 
