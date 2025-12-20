@@ -315,9 +315,6 @@ function aggregateUsage(usages: Array<UsageMetadata | undefined>): UsageMetadata
 }
 
 export async function refine(ai: GoogleGenAI, req: RefineRequest): Promise<RefineResponse> {
-  if (req.family !== "image" && req.family !== "video") {
-    throw new Error("UNSUPPORTED_FAMILY");
-  }
   const persona = getPersonaForFamily(req.family);
   const hasImages = (req.context?.image?.assets?.length || 0) > 0;
 
